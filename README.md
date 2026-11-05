@@ -52,8 +52,7 @@ mvn clean verify
 This compiles everything, runs the tests, and produces the update site in
 `releng/com.getman.site/target/repository/` (also zipped as `com.getman.site-*.zip`).
 
-To publish a release, copy the contents of `target/repository/` into the update-site repository (e.g.
-`getman-site`) and push it.
+To publish a release, copy the contents of `target/repository/` into the update-site repository and push it.
 
 ## Developing in Eclipse
 

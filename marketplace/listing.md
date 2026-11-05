@@ -16,7 +16,7 @@ Values for https://marketplace.eclipse.org/node/add/resource
 | Markets | Tools |
 | Tags | rest, http, api, client, postman, json, curl |
 | Version number | 0.1.0 |
-| Update Site URL | https://skanderturki.github.io/getman-site/ |
+| Update Site URL | _to be set: the new update-site repository's GitHub Pages URL_ |
 | Supported Eclipse Releases | 2024-03 (4.31) through 2026-12 (4.42) |
 | Supported Platforms | Windows, Mac, Linux/GTK |
 | Minimum Java Version | Java 17 |
