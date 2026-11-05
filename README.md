@@ -1,8 +1,25 @@
 # GetMan
 
+[![Latest release](https://img.shields.io/github/v/release/skanderturki/getman)](https://github.com/skanderturki/getman/releases/latest)
+[![License: EPL 2.0](https://img.shields.io/github/license/skanderturki/getman)](LICENSE)
+
 A free, lightweight REST/HTTP client built into the Eclipse IDE — no account, no cloud sync, no extra app.
 
-Open it with **Window › Show View › Other… › GetMan › GetMan**.
+## Install
+
+1. In Eclipse, open **Help › Install New Software…**, click **Add…** and enter the update site:
+
+   ```
+   https://skanderturki.github.io/getman-update-site/
+   ```
+
+2. Tick **GetMan REST Client** and finish the wizard, then restart Eclipse.
+3. Open it with **Window › Show View › Other… › GetMan › GetMan**.
+
+Offline: download `getman-*-update-site.zip` from the [latest release](https://github.com/skanderturki/getman/releases/latest)
+and use **Add… › Archive…** instead.
+
+Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Features (0.1)
 
