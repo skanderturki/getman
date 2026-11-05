@@ -64,13 +64,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Roadmap
 
-1. Folders inside collections, drag and drop
-2. Store auth secrets in Eclipse secure storage instead of the workspace state file
-3. Multipart form bodies (`-F`)
-4. Request history
-5. Environments with `{{variables}}`
-6. Preferences page (timeouts, redirects, trust self-signed certificates for local development)
-7. Postman v2.1 collection import
+Next up: **environments and `{{variables}}`** (0.4), **folders and Postman import** (0.5), **history and preferences** (0.6), **multipart uploads** (0.7) and **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
 
 ## Project layout
 
