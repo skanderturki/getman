@@ -24,11 +24,18 @@ of the Auth section. This also applies to [Copy as cURL](import-export.md).
 
 ## Where credentials are stored
 
-Like the rest of GetMan's data, tokens and passwords are saved in the workspace's GetMan state file (see
-[Troubleshooting](troubleshooting.md#where-is-my-data-stored)).
+Tokens and passwords are kept in **Eclipse secure storage**, which is encrypted. On Windows it uses the
+operating system's data protection, and on macOS the keychain. GetMan's own files (`state.json`, `history.json`)
+only hold a reference to each secret, never its value. Usernames are not secret and stay in the state file. See
+[Troubleshooting](troubleshooting.md#where-is-my-data-stored).
 
+- **Upgrading:** secrets saved by GetMan 0.7 or older (in plain text) move into secure storage automatically the
+  next time GetMan saves.
+- **If secure storage is unavailable**, for example on Linux after you cancel the master-password prompt, GetMan
+  keeps working and saves secrets in the state file as before. It warns you once per session.
 - **Export:** when you export a collection that contains secrets, GetMan asks whether to **Leave Out Secrets**
   (the default) or **Include Secrets**. Leaving them out keeps the auth type and username, so whoever imports the
-  file only fills in the secret.
-- **Planned:** keeping secrets in Eclipse's encrypted secure storage is on the
-  [roadmap](https://github.com/skanderturki/getman/blob/main/docs/ROADMAP.md).
+  file only fills in the secret. Exported files never refer to your secure storage, so they work on any machine.
+
+To keep a token out of individual requests altogether, put it in an environment variable marked **Secret** and use
+`{{token}}` in the Auth section (see [Environments and variables](environments.md#secret-variables)).

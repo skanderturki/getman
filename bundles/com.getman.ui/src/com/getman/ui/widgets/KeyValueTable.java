@@ -26,17 +26,29 @@ import com.getman.core.model.KeyValue;
 public class KeyValueTable extends Composite {
 	private static final int KEY_COL = 0;
 	private static final int VALUE_COL = 1;
+	private static final int SECRET_COL = 2;
+	private static final String MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
 
 	private final List<KeyValue> rows;
 	private final Runnable onChange;
+	private final boolean secrets;
 	private final Table table;
 	private final TableEditor editor;
 	private Text activeEditor;
 
 	public KeyValueTable(Composite parent, List<KeyValue> rows, String keyLabel, Runnable onChange) {
+		this(parent, rows, keyLabel, onChange, false);
+	}
+
+	/**
+	 * @param secrets show a "Secret" column (for variables): click it to mark a row secret; secret values are
+	 *                masked and kept in secure storage when saved
+	 */
+	public KeyValueTable(Composite parent, List<KeyValue> rows, String keyLabel, Runnable onChange, boolean secrets) {
 		super(parent, SWT.NONE);
 		this.rows = rows;
 		this.onChange = onChange;
+		this.secrets = secrets;
 		GridLayout layout = new GridLayout(2, false);
 		layout.marginWidth = 0;
 		layout.marginHeight = 0;
@@ -52,6 +64,15 @@ public class KeyValueTable extends Composite {
 		TableColumn valueColumn = new TableColumn(table, SWT.NONE);
 		valueColumn.setText("Value");
 		valueColumn.setWidth(400);
+		TableColumn secretColumn = null;
+		if (secrets) {
+			secretColumn = new TableColumn(table, SWT.CENTER);
+			secretColumn.setText("Secret");
+			secretColumn.setWidth(60);
+			secretColumn.setToolTipText("Click to mark a variable secret: its value is masked and stored in "
+					+ "Eclipse secure storage");
+		}
+		TableColumn secretCol = secretColumn;
 
 		Composite buttons = new Composite(this, SWT.NONE);
 		GridLayout buttonLayout = new GridLayout(1, false);
@@ -77,7 +98,8 @@ public class KeyValueTable extends Composite {
 			}
 		});
 		table.addListener(SWT.Resize, e -> {
-			int width = table.getClientArea().width - keyColumn.getWidth();
+			int width = table.getClientArea().width - keyColumn.getWidth()
+					- (secretCol == null ? 0 : secretCol.getWidth());
 			if (width > 100) {
 				valueColumn.setWidth(width);
 			}
@@ -92,14 +114,16 @@ public class KeyValueTable extends Composite {
 		table.removeAll();
 		for (KeyValue kv : rows) {
 			TableItem item = new TableItem(table, SWT.NONE);
-			item.setText(new String[] { kv.getKey(), kv.getValue() });
+			String shown = kv.isSecret() && !kv.getValue().isEmpty() ? MASK : kv.getValue();
+			item.setText(secrets ? new String[] { kv.getKey(), shown, kv.isSecret() ? "\u2713" : "" }
+					: new String[] { kv.getKey(), kv.getValue() });
 			item.setChecked(kv.isEnabled());
 			if (!kv.isEnabled()) {
 				item.setForeground(getDisplay().getSystemColor(SWT.COLOR_WIDGET_DISABLED_FOREGROUND));
 			}
 		}
 		TableItem placeholder = new TableItem(table, SWT.NONE);
-		placeholder.setText(new String[] { "", "" });
+		placeholder.setText(secrets ? new String[] { "", "", "" } : new String[] { "", "" });
 		placeholder.setGrayed(true);
 	}
 
@@ -130,25 +154,45 @@ public class KeyValueTable extends Composite {
 		Point pt = new Point(e.x, e.y);
 		for (int i = table.getTopIndex(); i < table.getItemCount(); i++) {
 			TableItem item = table.getItem(i);
-			for (int col = KEY_COL; col <= VALUE_COL; col++) {
+			int lastCol = secrets ? SECRET_COL : VALUE_COL;
+			for (int col = KEY_COL; col <= lastCol; col++) {
 				Rectangle bounds = item.getBounds(col);
 				if (bounds.contains(pt)) {
 					// Leave clicks on the checkbox (left of the key cell's text area) to the table.
 					if (col == KEY_COL && e.x < item.getTextBounds(KEY_COL).x) {
 						return;
 					}
-					openEditor(i, col);
+					if (col == SECRET_COL) {
+						toggleSecret(i);
+					} else {
+						openEditor(i, col);
+					}
 					return;
 				}
 			}
 		}
 	}
 
+	private void toggleSecret(int index) {
+		closeEditor(true);
+		if (isPlaceholder(index)) {
+			return;
+		}
+		KeyValue kv = rows.get(index);
+		kv.setSecret(!kv.isSecret());
+		refresh();
+		table.setSelection(index);
+		onChange.run();
+	}
+
 	private void openEditor(int rowIndex, int column) {
 		closeEditor(true);
 		TableItem item = table.getItem(rowIndex);
-		Text text = new Text(table, SWT.SINGLE);
-		text.setText(item.getText(column));
+		boolean secretValue = column == VALUE_COL && !isPlaceholder(rowIndex) && rows.get(rowIndex).isSecret();
+		Text text = new Text(table, SWT.SINGLE | (secretValue ? SWT.PASSWORD : SWT.NONE));
+		// Edit the real value, not the mask shown in the cell.
+		text.setText(isPlaceholder(rowIndex) ? "" : column == KEY_COL ? rows.get(rowIndex).getKey()
+				: rows.get(rowIndex).getValue());
 		text.selectAll();
 		activeEditor = text;
 		editor.setEditor(text, item, column);
@@ -229,7 +273,7 @@ public class KeyValueTable extends Composite {
 				return;
 			}
 			applyCell(kv, column, value);
-			item.setText(column, value);
+			item.setText(column, column == VALUE_COL && kv.isSecret() && !value.isEmpty() ? MASK : value);
 		}
 		onChange.run();
 	}

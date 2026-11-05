@@ -70,7 +70,8 @@ class EnvironmentsDialog extends Dialog {
 		Label intro = new Label(area, SWT.WRAP);
 		intro.setText("Use {{name}} in a request's URL, params, headers, body or auth, and pick an environment in "
 				+ "the GetMan toolbar to fill it in. Values may use other variables, e.g. base = "
-				+ "https://{{host}}:{{port}}.");
+				+ "https://{{host}}:{{port}}. Click a variable's Secret cell to mask it and keep its value in "
+				+ "Eclipse secure storage.");
 		GridData introData = new GridData(SWT.FILL, SWT.TOP, true, false);
 		introData.widthHint = 760;
 		intro.setLayoutData(introData);
@@ -159,7 +160,7 @@ class EnvironmentsDialog extends Dialog {
 		if (has) {
 			tableTitle.setText("Variables of \"" + env.getName() + "\"");
 			new KeyValueTable(tableHolder, env.getVariables(), "Variable", () -> {
-			});
+			}, true);
 		} else {
 			tableTitle.setText("No environments yet: click Add… to create one (e.g. Local, Staging, Production).");
 		}

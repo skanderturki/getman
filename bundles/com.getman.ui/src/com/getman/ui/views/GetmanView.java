@@ -49,6 +49,7 @@ import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.part.ViewPart;
 import org.osgi.framework.Bundle;
 
+import com.getman.ui.EclipseSecretStore;
 import com.getman.ui.preferences.GetmanPreferences;
 import org.osgi.framework.FrameworkUtil;
 
@@ -97,14 +98,18 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 	private CollectionsPanel collectionsPanel;
 	private CTabFolder tabs;
 	private boolean restoring;
+	private static boolean secretProblemShown;
 
 	@Override
 	public void createPartControl(Composite parent) {
 		Bundle bundle = FrameworkUtil.getBundle(GetmanView.class);
 		log = Platform.getLog(bundle);
 		Path stateFile = Platform.getStateLocation(bundle).append(STATE_FILE).toFile().toPath();
-		store = new StateStore(stateFile);
-		historyStore = new HistoryStore(Platform.getStateLocation(bundle).append(HISTORY_FILE).toFile().toPath());
+		// Tokens, passwords and secret variables go to Eclipse secure storage, not the JSON files.
+		Path stateLocation = Platform.getStateLocation(bundle).toFile().toPath();
+		store = new StateStore(stateFile, EclipseSecretStore.forWorkspace(stateLocation, "state"));
+		historyStore = new HistoryStore(stateLocation.resolve(HISTORY_FILE),
+				EclipseSecretStore.forWorkspace(stateLocation, "history"));
 		history.addAll(historyStore.load());
 		GetmanPreferences.instanceNode().addPreferenceChangeListener(preferenceListener);
 
@@ -253,7 +258,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 			return;
 		}
 		try {
-			historyStore.save(history, GetmanPreferences.historySize());
+			reportSecretProblems(historyStore.save(history, GetmanPreferences.historySize()));
 		} catch (IOException e) {
 			log.log(Status.error("Could not save GetMan history to " + historyStore.getFile(), e));
 		}
@@ -796,6 +801,26 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		tabs.getDisplay().timerExec(SAVE_DELAY_MS, saveNow);
 	}
 
+	/**
+	 * Secure storage problems (e.g. a cancelled master-password prompt) do not stop saving: secrets are then kept
+	 * in the state file in plain text. Log every problem; tell the user once per session.
+	 */
+	private void reportSecretProblems(List<String> problems) {
+		if (problems.isEmpty()) {
+			return;
+		}
+		problems.forEach(p -> log.log(Status.warning(p)));
+		if (!secretProblemShown && tabs != null && !tabs.isDisposed()) {
+			secretProblemShown = true;
+			String message = String.join("\n\n", problems);
+			tabs.getDisplay().asyncExec(() -> {
+				if (!tabs.isDisposed()) {
+					MessageDialog.openWarning(tabs.getShell(), "GetMan: Secure Storage", message);
+				}
+			});
+		}
+	}
+
 	private void save() {
 		if (tabs == null || tabs.isDisposed() || store == null) {
 			return;
@@ -811,7 +836,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		}
 		state.setSelectedIndex(Math.max(0, tabs.getSelectionIndex()));
 		try {
-			store.save(state);
+			reportSecretProblems(store.save(state));
 		} catch (IOException e) {
 			log.log(Status.error("Could not save GetMan requests to " + store.getFile(), e));
 		}

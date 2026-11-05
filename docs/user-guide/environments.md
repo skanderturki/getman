@@ -30,6 +30,19 @@ An environment is a named set of variables.
   - **Cancel** discards your changes.
 - **Select:** choose an environment in the dropdown. *No Environment* means only collection variables apply.
 
+## Secret variables
+
+Click a variable's **Secret** cell (in Manage Environments or a collection's Variables…) to mark it secret.
+
+- **Masked:** its value shows as `••••••••` and is typed into a password field.
+- **Stored safely:** its value is kept in Eclipse secure storage instead of GetMan's state file, like auth tokens
+  and passwords (see [Authorization](auth.md#where-credentials-are-stored)).
+- **Left out of exports:** secret collection variables are left out of collection exports unless you choose
+  **Include Secrets**.
+
+A typical setup: a `token` variable marked secret in each environment, and `Bearer {{token}}` in the Auth section
+of your requests.
+
 ## Collection variables
 
 Each collection can have its own variables: right-click it › **Variables…**. They apply to that collection's

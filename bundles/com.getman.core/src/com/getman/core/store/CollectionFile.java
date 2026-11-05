@@ -12,6 +12,7 @@ import com.getman.core.json.Json;
 import com.getman.core.json.JsonException;
 import com.getman.core.model.CollectionNode;
 import com.getman.core.model.Folder;
+import com.getman.core.model.KeyValue;
 import com.getman.core.model.NodeContainer;
 import com.getman.core.model.RequestCollection;
 import com.getman.core.model.RequestModel;
@@ -41,6 +42,7 @@ public final class CollectionFile {
 		RequestCollection exported = StateCodec.collectionFromMap(StateCodec.collectionToMap(collection));
 		if (!includeSecrets) {
 			exported.allRequests().forEach(r -> r.getAuth().clearSecrets());
+			exported.getVariables().stream().filter(KeyValue::isSecret).forEach(v -> v.setValue(""));
 		}
 		root.putAll(StateCodec.collectionToMap(exported));
 		root.remove("id");
@@ -65,7 +67,8 @@ public final class CollectionFile {
 
 	/** Whether any request in the collection stores a token or password. */
 	public static boolean hasSecrets(RequestCollection collection) {
-		return collection.allRequests().stream().anyMatch(r -> r.getAuth().hasSecrets());
+		return collection.allRequests().stream().anyMatch(r -> r.getAuth().hasSecrets())
+				|| collection.getVariables().stream().anyMatch(v -> v.isSecret() && !v.getValue().isEmpty());
 	}
 
 	/** New ids for the collection, its folders and requests, so an imported copy never clashes with the original. */

@@ -54,7 +54,8 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
   the request with variables filled in.
 - **Auth helper** – an **Auth** section per request: *Bearer Token* or *Basic Auth* (username/password), sent as
   the `Authorization` header. A header you add yourself in **Headers** takes precedence. Secrets are masked
-  (tick *Show* to reveal) and left out of collection exports unless you choose to include them.
+  (tick *Show* to reveal), kept in **Eclipse secure storage** (not in GetMan's files), and left out of collection
+  exports unless you choose to include them.
 - **Collections and folders** – a tree on the left of the view. `Ctrl+S` in a request tab saves it to a collection
   (you pick the collection and name the first time; afterwards `Ctrl+S` just updates it). Tabs with unsaved
   changes show a `*`. Organise requests in nested folders and **drag and drop** them to reorder or move them
@@ -83,7 +84,9 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Roadmap
 
-Next up: **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
+Planned releases 0.4 to 0.8 are done; see [docs/ROADMAP.md](docs/ROADMAP.md) for what came with each and the ideas
+for later (response search, save response to file, cookie jar, scripts). Suggestions are welcome as
+[GitHub issues](https://github.com/skanderturki/getman/issues).
 
 ## Project layout
 

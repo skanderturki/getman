@@ -57,13 +57,19 @@ Everything is stored locally, per workspace, in the GetMan plugin's state folder
 The files are plain JSON and are saved shortly after every change. If `state.json` is ever damaged, GetMan starts
 empty and keeps the damaged file as `state.json.corrupt-<date>`, so nothing is silently lost.
 
-Tokens and passwords are stored in `state.json` in plain text. Don't share that file. To share a collection, use
-**Export…**, which leaves secrets out by default.
+Tokens, passwords and variables marked **Secret** are not in these files. They are kept in Eclipse's encrypted
+**secure storage** (Window › Preferences › General › Security › Secure Storage), and the JSON files only refer to
+them. To share a collection, use **Export…**, which leaves secrets out by default.
+
+If secure storage is unavailable, GetMan saves secrets in `state.json` in plain text instead and warns you once
+per session. In that case, don't share `state.json`.
 
 ## How do I move my requests to another workspace or computer?
 
 - **Collections:** export each collection (right-click › **Export…**) and import it in the other workspace.
 - **Everything at once:** copy `state.json` to the same folder in the other workspace while Eclipse is closed.
+  Secrets stay behind in this workspace's secure storage, so re-enter tokens, passwords and secret variables
+  afterwards (or export collections with **Include Secrets**).
 
 ## Reporting a problem or asking for a feature
 

@@ -10,4 +10,5 @@ Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.jface,
  org.eclipse.ui,
+ org.eclipse.equinox.security,
  com.getman.core;bundle-version="0.7.0"

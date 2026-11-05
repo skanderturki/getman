@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import com.getman.core.json.JsonException;
 
@@ -17,9 +18,16 @@ import com.getman.core.json.JsonException;
  */
 public final class StateStore {
 	private final Path file;
+	private final SecretStore secretStore;
 
 	public StateStore(Path file) {
+		this(file, null);
+	}
+
+	/** @param secretStore where secrets go instead of the JSON file; {@code null} keeps them inline */
+	public StateStore(Path file, SecretStore secretStore) {
 		this.file = file;
+		this.secretStore = secretStore;
 	}
 
 	public Path getFile() {
@@ -37,7 +45,11 @@ public final class StateStore {
 		}
 		try {
 			String json = Files.readString(file, StandardCharsets.UTF_8);
-			return new LoadResult(StateCodec.fromJson(json), null);
+			Secrets secrets = secretStore == null ? null : new Secrets(secretStore);
+			WorkspaceState state = StateCodec.fromJson(json, secrets);
+			String warning = secrets == null || secrets.warnings().isEmpty() ? null
+					: String.join("\n", secrets.warnings());
+			return new LoadResult(state, warning);
 		} catch (IOException | JsonException e) {
 			String backup = quarantine();
 			return new LoadResult(new WorkspaceState(),
@@ -46,14 +58,31 @@ public final class StateStore {
 		}
 	}
 
-	public void save(WorkspaceState state) throws IOException {
-		Files.createDirectories(file.getParent());
-		Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
-		Files.writeString(tmp, StateCodec.toJson(state), StandardCharsets.UTF_8);
+	/**
+	 * Saves atomically. Secrets go to the secret store (if any) and secrets no longer referenced are removed
+	 * from it afterwards, so the JSON on disk never points at a deleted secret.
+	 *
+	 * @return problems with the secret store (the save itself still succeeded); empty when all went well
+	 */
+	public List<String> save(WorkspaceState state) throws IOException {
+		Secrets secrets = secretStore == null ? null : new Secrets(secretStore);
+		writeAtomically(file, StateCodec.toJson(state, secrets));
+		if (secrets == null) {
+			return List.of();
+		}
+		secrets.finish();
+		return secrets.warnings();
+	}
+
+	/** Writes to a temp file next to {@code target}, then moves it over the target. */
+	static void writeAtomically(Path target, String content) throws IOException {
+		Files.createDirectories(target.getParent());
+		Path tmp = target.resolveSibling(target.getFileName() + ".tmp");
+		Files.writeString(tmp, content, StandardCharsets.UTF_8);
 		try {
-			Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+			Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 		} catch (AtomicMoveNotSupportedException e) {
-			Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
+			Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
 		}
 	}
 

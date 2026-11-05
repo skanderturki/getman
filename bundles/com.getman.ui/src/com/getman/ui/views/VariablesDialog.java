@@ -52,7 +52,7 @@ class VariablesDialog extends Dialog {
 		introData.widthHint = 560;
 		intro.setLayoutData(introData);
 		KeyValueTable table = new KeyValueTable(area, variables, "Variable", () -> {
-		});
+		}, true);
 		table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 		return area;
 	}

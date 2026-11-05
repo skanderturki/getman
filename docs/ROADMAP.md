@@ -1,5 +1,8 @@
 # GetMan roadmap
 
+Status: 0.4.0 to 0.7.0 are released; 0.8.0 (secure storage) is the last planned release. The user guide was
+added in 0.7.0.
+
 Planned work after 0.3.0, in release order. Each release is shippable on its own: merged to `main`, tagged,
 published to the update site, and announced in the GitHub release notes.
 
