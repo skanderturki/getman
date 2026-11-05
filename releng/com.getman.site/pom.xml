@@ -6,11 +6,11 @@
   <parent>
     <groupId>com.getman</groupId>
     <artifactId>getman-parent</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
+    <version>0.5.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>com.getman.site</artifactId>
-  <version>0.4.0-SNAPSHOT</version>
+  <version>0.5.0-SNAPSHOT</version>
   <!-- Produces target/repository: the p2 update site to publish (into the update-site repo). -->
   <packaging>eclipse-repository</packaging>
 </project>
