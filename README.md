@@ -21,6 +21,24 @@ and use **Add… › Archive…** instead.
 
 Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
+## Screenshots
+
+**Collections and a request with its response**
+
+![GetMan view with a collection of saved requests, a GET request and its pretty-printed JSON response](docs/screenshots/overview.png)
+
+**Every response header, one click away**
+
+![Response Headers tab showing status, time, size and every response header](docs/screenshots/response-headers.png)
+
+**Save to a collection with Ctrl+S or the toolbar**
+
+![Save to Collection (Ctrl+S) button in the GetMan view toolbar](docs/screenshots/save-to-collection.png)
+
+**Copy any request as cURL**
+
+![Request tab context menu: Save to Collection, Save As, Rename, Duplicate, Copy as cURL, Close](docs/screenshots/copy-as-curl.png)
+
 ## Features (0.1)
 
 - **Request tabs** – method, URL, query params, headers and body (JSON, text, XML, form). Double-click a tab to
