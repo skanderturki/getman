@@ -6,6 +6,7 @@ Values for https://marketplace.eclipse.org/node/add/resource
 |---|---|
 | Solution Name | GetMan |
 | Solution URL | https://github.com/skanderturki/getman |
+| Organization Name | Jahiz Digital Solutions (Jahiz.tn) |
 | Eclipse Foundation Member | No |
 | Solution Logo | `logo-110x80.png` (this folder) |
 | Status | Beta |
