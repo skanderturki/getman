@@ -16,7 +16,7 @@ Values for https://marketplace.eclipse.org/node/add/resource
 | Categories | Testing, Web Services, Tools, Web, Network |
 | Markets | Tools |
 | Tags | rest, http, api, client, postman, json, curl |
-| Version number | 0.6.0 |
+| Version number | 0.7.0 |
 | Update Site URL | https://skanderturki.github.io/getman-update-site/ |
 | Supported Eclipse Releases | 2024-03 (4.31) through 2026-12 (4.42) |
 | Supported Platforms | Windows, Mac, Linux/GTK |
@@ -28,7 +28,8 @@ Values for https://marketplace.eclipse.org/node/add/resource
 
 GetMan is a free, lightweight REST/HTTP client inside the Eclipse IDE. No account, no cloud sync, no extra app.
 
-- **Request tabs**: method, URL, query params, headers and body (JSON, text, XML, form).
+- **Request tabs**: method, URL, query params, headers and body: JSON, text, XML, URL-encoded form, multipart form data with file uploads, or a binary file.
+- **User guide**: built into Eclipse Help (Help › Help Contents › GetMan User Guide) and on GitHub.
 - **Environments and {{variables}}**: switch between Local, Staging and Production from a dropdown; {{name}} works in URL, params, headers, body and auth.
 - **Auth helper**: Bearer token and Basic auth, with secrets masked and left out of exports by default.
 - **Postman import**: bring in Postman collections (v2.0/2.1, with folders, auth and variables) and environments.

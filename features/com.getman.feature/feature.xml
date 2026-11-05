@@ -2,7 +2,7 @@
 <feature
       id="com.getman.feature"
       label="GetMan REST Client"
-      version="0.6.0.qualifier"
+      version="0.7.0.qualifier"
       provider-name="Jahiz Digital Solutions (Jahiz.tn)">
 
    <description>
