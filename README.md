@@ -39,7 +39,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ![Request tab context menu: Save to Collection, Save As, Rename, Duplicate, Copy as cURL, Close](docs/screenshots/copy-as-curl.png)
 
-## Features (0.3)
+## Features (0.4)
 
 - **Request tabs** – method, URL, query params, headers and body (JSON, text, XML, form). Double-click a tab to
   rename it; right-click for Duplicate, Copy as cURL, Close, Close Others.
