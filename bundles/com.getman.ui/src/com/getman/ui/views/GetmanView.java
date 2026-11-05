@@ -12,6 +12,7 @@ import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.ControlContribution;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.Separator;
@@ -30,6 +31,7 @@ import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.dnd.Transfer;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Event;
@@ -47,10 +49,12 @@ import org.osgi.framework.FrameworkUtil;
 import com.getman.core.curl.CurlExporter;
 import com.getman.core.curl.CurlImporter;
 import com.getman.core.http.HttpService;
+import com.getman.core.model.Environment;
 import com.getman.core.model.RequestCollection;
 import com.getman.core.model.RequestModel;
 import com.getman.core.store.StateStore;
 import com.getman.core.store.WorkspaceState;
+import com.getman.core.variables.VariableResolver;
 
 /**
  * The GetMan view: collections on the left, one tab per open request on the right. Collections and open tabs are
@@ -63,10 +67,14 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 	private static final int SAVE_DELAY_MS = 800;
 	private static final String STATE_FILE = "state.json";
 	private static final String NEW_COLLECTION_CHOICE = "New collection…";
+	private static final String MANAGE_ENVIRONMENTS = "Manage Environments…";
 
 	private final HttpService http = new HttpService();
 	private final Runnable saveNow = this::save;
 	private final List<RequestCollection> collections = new ArrayList<>();
+	private final List<Environment> environments = new ArrayList<>();
+	private String activeEnvironmentId = "";
+	private Combo environmentCombo;
 	private StateStore store;
 	private ILog log;
 	private SashForm sash;
@@ -156,7 +164,98 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		return new RequestTab(tabs, model, http, () -> {
 			updateTabTitle(item);
 			scheduleSave();
-		}, result -> replaceWithCurl(item, result));
+		}, result -> replaceWithCurl(item, result), this::currentScope);
+	}
+
+	// --- environments --------------------------------------------------------------------------
+
+	private Environment activeEnvironment() {
+		for (Environment e : environments) {
+			if (e.getId().equals(activeEnvironmentId)) {
+				return e;
+			}
+		}
+		return null;
+	}
+
+	/** Variables requests are resolved against right now. */
+	private VariableScope currentScope() {
+		Environment env = activeEnvironment();
+		return env == null ? VariableScope.NONE : new VariableScope(env.getName(), env.activeValues());
+	}
+
+	private void selectEnvironment(String id) {
+		activeEnvironmentId = id == null ? "" : id;
+		refreshEnvironmentCombo();
+		for (CTabItem item : tabs.getItems()) {
+			if (item.getControl() instanceof RequestTab tab) {
+				tab.refreshVariableHint();
+			}
+		}
+		scheduleSave();
+	}
+
+	private void manageEnvironments() {
+		EnvironmentsDialog dialog = new EnvironmentsDialog(tabs.getShell(), environments, activeEnvironmentId);
+		if (dialog.open() == Window.OK) {
+			environments.clear();
+			environments.addAll(dialog.getResult());
+			if (activeEnvironment() == null) {
+				// The active one was deleted, or there was none: pick the first so variables work right away.
+				activeEnvironmentId = environments.isEmpty() ? "" : environments.get(0).getId();
+			}
+			selectEnvironment(activeEnvironmentId);
+		} else {
+			refreshEnvironmentCombo();
+		}
+	}
+
+	/** Combo entries: "No Environment", each environment, then "Manage Environments…". */
+	private void refreshEnvironmentCombo() {
+		if (environmentCombo == null || environmentCombo.isDisposed()) {
+			return;
+		}
+		environmentCombo.removeAll();
+		environmentCombo.add("No Environment");
+		int selected = 0;
+		for (int i = 0; i < environments.size(); i++) {
+			Environment e = environments.get(i);
+			environmentCombo.add(e.getName().isBlank() ? "Untitled" : e.getName());
+			if (e.getId().equals(activeEnvironmentId)) {
+				selected = i + 1;
+			}
+		}
+		environmentCombo.add(MANAGE_ENVIRONMENTS);
+		environmentCombo.select(selected);
+		environmentCombo.setToolTipText(selected == 0 ? "No environment: {{variables}} are not replaced"
+				: "Environment used to fill {{variables}}");
+	}
+
+	private final class EnvironmentSelector extends ControlContribution {
+		EnvironmentSelector() {
+			super("com.getman.ui.environment");
+		}
+
+		@Override
+		protected Control createControl(Composite parent) {
+			environmentCombo = new Combo(parent, SWT.READ_ONLY | SWT.DROP_DOWN);
+			environmentCombo.addListener(SWT.Selection, e -> {
+				int i = environmentCombo.getSelectionIndex();
+				if (i == environmentCombo.getItemCount() - 1) {
+					// "Manage Environments…" is an action, not a choice: open the dialog.
+					environmentCombo.getDisplay().asyncExec(GetmanView.this::manageEnvironments);
+				} else {
+					selectEnvironment(i == 0 ? "" : environments.get(i - 1).getId());
+				}
+			});
+			refreshEnvironmentCombo();
+			return environmentCombo;
+		}
+
+		@Override
+		protected int computeWidth(Control control) {
+			return Math.max(160, control.computeSize(SWT.DEFAULT, SWT.DEFAULT, true).x);
+		}
 	}
 
 	/** A cURL command was pasted into a tab's URL field: that tab now shows the imported request. */
@@ -316,6 +415,8 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		IToolBarManager toolbar = getViewSite().getActionBars().getToolBarManager();
 		ISharedImages images = PlatformUI.getWorkbench().getSharedImages();
 
+		toolbar.add(new EnvironmentSelector());
+		toolbar.add(new Separator());
 		toolbar.add(action("New Request", images, ISharedImages.IMG_OBJ_ADD, () -> {
 			addTab(newRequest(), true);
 			scheduleSave();
@@ -341,6 +442,8 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		IMenuManager viewMenu = getViewSite().getActionBars().getMenuManager();
 		viewMenu.add(action("New Collection…", images, ISharedImages.IMG_OBJ_FOLDER, collectionsPanel::newCollection));
 		viewMenu.add(action("Import Collection…", images, null, collectionsPanel::importCollection));
+		viewMenu.add(new Separator());
+		viewMenu.add(action("Manage Environments…", images, null, this::manageEnvironments));
 		viewMenu.add(new Separator());
 		viewMenu.add(action("Import cURL Command…", images, ISharedImages.IMG_TOOL_PASTE, this::importCurl));
 		viewMenu.add(action("Save As…", images, null, () -> saveSelected(true)));
@@ -382,7 +485,9 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 	}
 
 	private void copyAsCurl(CTabItem item) {
-		String curl = CurlExporter.toCurl((RequestModel) item.getData());
+		// Copy what would be sent: variables filled in from the active environment.
+		RequestModel resolved = new VariableResolver(currentScope().values()).resolve((RequestModel) item.getData());
+		String curl = CurlExporter.toCurl(resolved);
 		Clipboard clipboard = new Clipboard(tabs.getDisplay());
 		try {
 			clipboard.setContents(new Object[] { curl }, new Transfer[] { TextTransfer.getInstance() });
@@ -523,6 +628,9 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 			StateStore.LoadResult result = store.load();
 			WorkspaceState state = result.state();
 			collections.addAll(state.getCollections());
+			environments.addAll(state.getEnvironments());
+			activeEnvironmentId = state.getActiveEnvironmentId();
+			refreshEnvironmentCombo();
 			collectionsPanel.refresh();
 			for (RequestModel model : state.getOpenTabs()) {
 				if (findCollection(model.getCollectionId()) == null) {
@@ -561,6 +669,8 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		}
 		WorkspaceState state = new WorkspaceState();
 		state.getCollections().addAll(collections);
+		state.getEnvironments().addAll(environments);
+		state.setActiveEnvironmentId(activeEnvironmentId);
 		for (CTabItem item : tabs.getItems()) {
 			if (item.getData() instanceof RequestModel model) {
 				state.getOpenTabs().add(model);

@@ -10,4 +10,5 @@ Export-Package: com.getman.core.curl,
  com.getman.core.http,
  com.getman.core.json,
  com.getman.core.model,
- com.getman.core.store
+ com.getman.core.store,
+ com.getman.core.variables

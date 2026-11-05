@@ -1,0 +1,61 @@
+package com.getman.core.model;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/** A named set of variables, e.g. "Local" or "Production", used to fill {@code {{name}}} placeholders. */
+public final class Environment {
+	private String id = UUID.randomUUID().toString();
+	private String name = "New Environment";
+	private final List<KeyValue> variables = new ArrayList<>();
+
+	public Environment() {
+	}
+
+	public Environment(String name) {
+		setName(name);
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = (id == null || id.isBlank()) ? UUID.randomUUID().toString() : id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name == null ? "" : name;
+	}
+
+	/** Live, mutable list of variables in display order. */
+	public List<KeyValue> getVariables() {
+		return variables;
+	}
+
+	/** Enabled variables with a non-blank name; later rows win when a name repeats. */
+	public Map<String, String> activeValues() {
+		Map<String, String> values = new LinkedHashMap<>();
+		for (KeyValue v : variables) {
+			if (v.isActive()) {
+				values.put(v.getKey().trim(), v.getValue());
+			}
+		}
+		return values;
+	}
+
+	/** Deep copy with the same id (for editing in a dialog without touching the live object). */
+	public Environment copy() {
+		Environment c = new Environment(name);
+		c.id = id;
+		variables.forEach(v -> c.variables.add(v.copy()));
+		return c;
+	}
+}

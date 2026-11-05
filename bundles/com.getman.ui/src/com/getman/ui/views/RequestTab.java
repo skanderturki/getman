@@ -3,7 +3,10 @@ package com.getman.ui.views;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.JFaceResources;
@@ -36,6 +39,7 @@ import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestModel;
 import com.getman.core.model.ResponseModel;
+import com.getman.core.variables.VariableResolver;
 import com.getman.ui.widgets.AuthPanel;
 import com.getman.ui.widgets.KeyValueTable;
 import com.getman.ui.widgets.ResponsePanel;
@@ -46,6 +50,8 @@ class RequestTab extends Composite {
 	private final HttpService http;
 	private final Runnable onChange;
 	private final Consumer<CurlImporter.Result> onCurlPasted;
+	private final Supplier<VariableScope> scope;
+	private final Label variableHint;
 
 	private final Button sendButton;
 	private final CTabItem paramsTab;
@@ -59,13 +65,18 @@ class RequestTab extends Composite {
 	 * @param onCurlPasted called (asynchronously) when a cURL command is pasted into the URL field; the receiver
 	 *                     replaces this tab's request with the parsed one
 	 */
-	RequestTab(Composite parent, RequestModel model, HttpService http, Runnable onChange,
-			Consumer<CurlImporter.Result> onCurlPasted) {
+	RequestTab(Composite parent, RequestModel model, HttpService http, Runnable onChangeListener,
+			Consumer<CurlImporter.Result> onCurlPasted, Supplier<VariableScope> scope) {
 		super(parent, SWT.NONE);
 		this.model = model;
 		this.http = http;
-		this.onChange = onChange;
+		// Every edit also refreshes the unknown-variables hint.
+		this.onChange = () -> {
+			updateVariableHint();
+			onChangeListener.run();
+		};
 		this.onCurlPasted = onCurlPasted;
+		this.scope = scope;
 		setLayout(new FillLayout());
 
 		SashForm sash = new SashForm(this, SWT.VERTICAL);
@@ -139,6 +150,13 @@ class RequestTab extends Composite {
 		sendButton.setLayoutData(sendData);
 		sendButton.addListener(SWT.Selection, e -> sendOrCancel());
 
+		variableHint = new Label(editor, SWT.WRAP);
+		variableHint.setForeground(getDisplay().getSystemColor(SWT.COLOR_DARK_RED));
+		GridData hintData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+		hintData.exclude = true;
+		variableHint.setLayoutData(hintData);
+		variableHint.setVisible(false);
+
 		// --- params / headers / body ---------------------------------------------------------
 		CTabFolder sections = new CTabFolder(editor, SWT.BORDER | SWT.FLAT);
 		sections.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -201,6 +219,7 @@ class RequestTab extends Composite {
 		responsePanel = new ResponsePanel(sash);
 		sash.setWeights(new int[] { 45, 55 });
 
+		updateVariableHint();
 		installSendShortcut(this);
 	}
 
@@ -221,6 +240,37 @@ class RequestTab extends Composite {
 		return end < 0 ? s : s.substring(0, end);
 	}
 
+	/**
+	 * Shows "Unknown variables: …" under the URL when the parts that will be sent use {{names}} the active
+	 * environment does not define. Called on every edit and when the environment changes.
+	 */
+	void refreshVariableHint() {
+		updateVariableHint();
+	}
+
+	private void updateVariableHint() {
+		if (variableHint == null || variableHint.isDisposed()) {
+			return;
+		}
+		VariableScope s = scope.get();
+		Set<String> unknown = VariableResolver.unresolvedIn(model, s.values());
+		String text = "";
+		if (!unknown.isEmpty()) {
+			String names = unknown.stream().map(n -> "{{" + n + "}}").collect(Collectors.joining(", "));
+			text = (unknown.size() == 1 ? "Unknown variable " : "Unknown variables ") + names
+					+ (s.environmentName().isEmpty() ? ": no environment is selected in the GetMan toolbar."
+							: ": not defined in environment \"" + s.environmentName() + "\".");
+		}
+		boolean show = !text.isEmpty();
+		if (show == variableHint.getVisible() && text.equals(variableHint.getText())) {
+			return;
+		}
+		variableHint.setText(text);
+		variableHint.setVisible(show);
+		((GridData) variableHint.getLayoutData()).exclude = !show;
+		variableHint.getParent().layout(true);
+	}
+
 	RequestModel getModel() {
 		return model;
 	}
@@ -232,7 +282,7 @@ class RequestTab extends Composite {
 		}
 		responsePanel.showLoading();
 		sendButton.setText("Cancel");
-		CompletableFuture<ResponseModel> future = http.send(model);
+		CompletableFuture<ResponseModel> future = http.send(new VariableResolver(scope.get().values()).resolve(model));
 		inFlight = future;
 		future.whenComplete((response, error) -> {
 			if (isDisposed()) {

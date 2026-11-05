@@ -43,6 +43,10 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 - **Request tabs** – method, URL, query params, headers and body (JSON, text, XML, form). Double-click a tab to
   rename it; right-click for Duplicate, Copy as cURL, Close, Close Others.
+- **Environments and `{{variables}}`** – define Local, Staging, Production… in **Manage Environments** and pick
+  one from the dropdown in the GetMan toolbar. `{{name}}` works in the URL, params, headers, body and auth, and
+  values can use other variables. Unknown variables are flagged under the URL as you type; **Copy as cURL** copies
+  the request with variables filled in.
 - **Auth helper** – an **Auth** section per request: *Bearer Token* or *Basic Auth* (username/password), sent as
   the `Authorization` header. A header you add yourself in **Headers** takes precedence. Secrets are masked
   (tick *Show* to reveal) and left out of collection exports unless you choose to include them.
@@ -64,7 +68,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Roadmap
 
-Next up: **environments and `{{variables}}`** (0.4), **folders and Postman import** (0.5), **history and preferences** (0.6), **multipart uploads** (0.7) and **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
+Next up: **folders and Postman import** (0.5), **history and preferences** (0.6), **multipart uploads** (0.7) and **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
 
 ## Project layout
 

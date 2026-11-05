@@ -10,6 +10,7 @@ import com.getman.core.json.JsonException;
 import com.getman.core.model.Auth;
 import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
+import com.getman.core.model.Environment;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestCollection;
@@ -36,6 +37,16 @@ public final class StateCodec {
 			collections.add(collectionToMap(c));
 		}
 		root.put("collections", collections);
+		List<Object> environments = new ArrayList<>();
+		for (Environment e : state.getEnvironments()) {
+			Map<String, Object> em = new LinkedHashMap<>();
+			em.put("id", e.getId());
+			em.put("name", e.getName());
+			em.put("variables", kvToList(e.getVariables()));
+			environments.add(em);
+		}
+		root.put("environments", environments);
+		root.put("activeEnvironmentId", state.getActiveEnvironmentId());
 		return Json.writePretty(root);
 	}
 
@@ -55,6 +66,18 @@ public final class StateCodec {
 				state.getCollections().add(collectionFromMap(m));
 			}
 		}
+		for (Object o : list(root.get("environments"))) {
+			if (o instanceof Map<?, ?> em) {
+				Environment e = new Environment();
+				e.setId(string(em.get("id")));
+				e.setName(string(em.get("name")));
+				e.getVariables().addAll(kvFromList(em.get("variables")));
+				state.getEnvironments().add(e);
+			}
+		}
+		String active = string(root.get("activeEnvironmentId"));
+		boolean activeExists = state.getEnvironments().stream().anyMatch(e -> e.getId().equals(active));
+		state.setActiveEnvironmentId(activeExists ? active : "");
 		int selected = (int) number(root.get("selectedIndex"));
 		state.setSelectedIndex(Math.max(0, Math.min(selected, state.getOpenTabs().size() - 1)));
 		return state;
