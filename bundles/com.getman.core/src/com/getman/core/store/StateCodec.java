@@ -7,6 +7,8 @@ import java.util.Map;
 
 import com.getman.core.json.Json;
 import com.getman.core.json.JsonException;
+import com.getman.core.model.Auth;
+import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
@@ -96,6 +98,15 @@ public final class StateCodec {
 		m.put("headers", kvToList(r.getHeaders()));
 		m.put("bodyType", r.getBodyType().name());
 		m.put("body", r.getBody());
+		Auth auth = r.getAuth();
+		if (auth.getType() != AuthType.NONE || !auth.getUsername().isEmpty() || auth.hasSecrets()) {
+			Map<String, Object> am = new LinkedHashMap<>();
+			am.put("type", auth.getType().name());
+			am.put("token", auth.getToken());
+			am.put("username", auth.getUsername());
+			am.put("password", auth.getPassword());
+			m.put("auth", am);
+		}
 		if (r.isInCollection()) {
 			m.put("collectionId", r.getCollectionId());
 		}
@@ -113,6 +124,13 @@ public final class StateCodec {
 		r.setBodyType(BodyType.parse(string(m.get("bodyType"))));
 		r.setBody(string(m.get("body")));
 		r.setCollectionId(string(m.get("collectionId")));
+		if (m.get("auth") instanceof Map<?, ?> am) {
+			Auth auth = r.getAuth();
+			auth.setType(AuthType.parse(string(am.get("type"))));
+			auth.setToken(string(am.get("token")));
+			auth.setUsername(string(am.get("username")));
+			auth.setPassword(string(am.get("password")));
+		}
 		return r;
 	}
 

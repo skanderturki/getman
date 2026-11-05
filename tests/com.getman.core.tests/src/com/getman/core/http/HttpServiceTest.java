@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 
+import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
@@ -65,6 +66,38 @@ class HttpServiceTest {
 			assertEquals("POST /items HTTP/1.1", received.requestLine());
 			assertEquals("application/json", received.headers().get("content-type"));
 			assertEquals("{\"name\":\"é\"}", received.body());
+		}
+	}
+
+	@Test
+	void sendsBasicAuthHeader() throws Exception {
+		try (TestServer server = new TestServer("HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")) {
+			RequestModel request = new RequestModel();
+			request.setUrl(server.url("/secure"));
+			request.getAuth().setType(AuthType.BASIC);
+			request.getAuth().setUsername("Aladdin");
+			request.getAuth().setPassword("open sesame");
+
+			http.send(request).get(10, TimeUnit.SECONDS);
+
+			assertEquals("Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
+					server.received.get(5, TimeUnit.SECONDS).headers().get("authorization"));
+		}
+	}
+
+	@Test
+	void explicitAuthorizationHeaderReplacesAuth() throws Exception {
+		try (TestServer server = new TestServer("HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")) {
+			RequestModel request = new RequestModel();
+			request.setUrl(server.url("/secure"));
+			request.getAuth().setType(AuthType.BEARER);
+			request.getAuth().setToken("from-auth-tab");
+			request.getHeaders().add(new KeyValue("Authorization", "Bearer from-headers"));
+
+			http.send(request).get(10, TimeUnit.SECONDS);
+
+			assertEquals("Bearer from-headers",
+					server.received.get(5, TimeUnit.SECONDS).headers().get("authorization"));
 		}
 	}
 

@@ -1,6 +1,8 @@
 package com.getman.core.curl;
 
 import com.getman.core.http.UrlBuilder;
+import com.getman.core.model.Auth;
+import com.getman.core.model.AuthType;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestModel;
@@ -23,6 +25,14 @@ public final class CurlExporter {
 		for (KeyValue h : request.getHeaders()) {
 			if (h.isActive()) {
 				sb.append(" \\\n  -H ").append(quote(h.getKey().trim() + ": " + h.getValue()));
+			}
+		}
+		if (request.authorizationFromAuth() != null) {
+			Auth auth = request.getAuth();
+			if (auth.getType() == AuthType.BASIC) {
+				sb.append(" \\\n  -u ").append(quote(auth.getUsername() + ":" + auth.getPassword()));
+			} else {
+				sb.append(" \\\n  -H ").append(quote(Auth.HEADER + ": " + auth.headerValue()));
 			}
 		}
 		String contentType = request.getBodyType().contentType();

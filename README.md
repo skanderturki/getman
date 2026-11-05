@@ -43,6 +43,9 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 - **Request tabs** – method, URL, query params, headers and body (JSON, text, XML, form). Double-click a tab to
   rename it; right-click for Duplicate, Copy as cURL, Close, Close Others.
+- **Auth helper** – an **Auth** section per request: *Bearer Token* or *Basic Auth* (username/password), sent as
+  the `Authorization` header. A header you add yourself in **Headers** takes precedence. Secrets are masked
+  (tick *Show* to reveal) and left out of collection exports unless you choose to include them.
 - **Collections** – a tree on the left of the view. `Ctrl+S` in a request tab saves it to a collection (you pick
   the collection and name the first time; afterwards `Ctrl+S` just updates it). Tabs with unsaved changes show a
   `*`. Double-click a saved request to open it; right-click for Rename (F2), Duplicate, Move Up/Down, Delete
@@ -59,7 +62,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 ## Roadmap
 
 1. Folders inside collections, drag and drop
-2. Auth helper (Bearer, Basic)
+2. Store auth secrets in Eclipse secure storage instead of the workspace state file
 3. Paste a cURL command to create a request
 4. Request history
 5. Environments with `{{variables}}`

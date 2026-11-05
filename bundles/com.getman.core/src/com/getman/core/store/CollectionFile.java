@@ -21,10 +21,29 @@ public final class CollectionFile {
 	private CollectionFile() {
 	}
 
+	/** Exports without tokens and passwords. */
 	public static String toJson(RequestCollection collection) {
+		return toJson(collection, false);
+	}
+
+	/**
+	 * @param includeSecrets whether auth tokens and passwords are written; when {@code false} the auth type and
+	 *                       username are kept so the recipient only has to fill in the secret
+	 */
+	public static String toJson(RequestCollection collection, boolean includeSecrets) {
+		RequestCollection exported = collection;
+		if (!includeSecrets) {
+			exported = new RequestCollection(collection.getName());
+			exported.setId(collection.getId());
+			for (RequestModel r : collection.getRequests()) {
+				RequestModel c = r.copy();
+				c.getAuth().clearSecrets();
+				exported.getRequests().add(c);
+			}
+		}
 		Map<String, Object> root = new LinkedHashMap<>();
 		root.put(FORMAT_KEY, FORMAT_VERSION);
-		root.putAll(StateCodec.collectionToMap(collection));
+		root.putAll(StateCodec.collectionToMap(exported));
 		root.remove("id");
 		return Json.writePretty(root);
 	}
@@ -44,8 +63,13 @@ public final class CollectionFile {
 		return c;
 	}
 
-	public static void write(RequestCollection collection, Path file) throws IOException {
-		Files.writeString(file, toJson(collection), StandardCharsets.UTF_8);
+	public static void write(RequestCollection collection, Path file, boolean includeSecrets) throws IOException {
+		Files.writeString(file, toJson(collection, includeSecrets), StandardCharsets.UTF_8);
+	}
+
+	/** Whether any request in the collection stores a token or password. */
+	public static boolean hasSecrets(RequestCollection collection) {
+		return collection.getRequests().stream().anyMatch(r -> r.getAuth().hasSecrets());
 	}
 
 	public static RequestCollection read(Path file) throws IOException {

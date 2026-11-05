@@ -23,11 +23,13 @@ import org.eclipse.swt.widgets.Text;
 import com.getman.core.http.HttpService;
 import com.getman.core.json.Json;
 import com.getman.core.json.JsonException;
+import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestModel;
 import com.getman.core.model.ResponseModel;
+import com.getman.ui.widgets.AuthPanel;
 import com.getman.ui.widgets.KeyValueTable;
 import com.getman.ui.widgets.ResponsePanel;
 
@@ -39,6 +41,7 @@ class RequestTab extends Composite {
 
 	private final Button sendButton;
 	private final CTabItem paramsTab;
+	private final CTabItem authTab;
 	private final CTabItem headersTab;
 	private final Label bodyError;
 	private final ResponsePanel responsePanel;
@@ -103,6 +106,8 @@ class RequestTab extends Composite {
 
 		paramsTab = new CTabItem(sections, SWT.NONE);
 		paramsTab.setControl(new KeyValueTable(sections, model.getParams(), "Parameter", this::sectionChanged));
+		authTab = new CTabItem(sections, SWT.NONE);
+		authTab.setControl(new AuthPanel(sections, model.getAuth(), this::sectionChanged));
 		headersTab = new CTabItem(sections, SWT.NONE);
 		headersTab.setControl(new KeyValueTable(sections, model.getHeaders(), "Header", this::sectionChanged));
 
@@ -212,6 +217,8 @@ class RequestTab extends Composite {
 	private void updateSectionTitles() {
 		paramsTab.setText(withCount("Params", model.getParams().stream().filter(KeyValue::isActive).count()));
 		headersTab.setText(withCount("Headers", model.getHeaders().stream().filter(KeyValue::isActive).count()));
+		AuthType auth = model.getAuth().getType();
+		authTab.setText(auth == AuthType.NONE ? "Auth" : "Auth (" + (auth == AuthType.BEARER ? "Bearer" : "Basic") + ")");
 	}
 
 	private static String withCount(String label, long count) {

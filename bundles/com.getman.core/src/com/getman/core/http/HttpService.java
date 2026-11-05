@@ -20,6 +20,7 @@ import java.util.concurrent.CompletionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.getman.core.model.Auth;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestModel;
@@ -87,6 +88,14 @@ public final class HttpService {
 		String contentType = request.getBodyType().contentType();
 		if (request.hasBody() && contentType != null && !request.hasActiveHeader("Content-Type")) {
 			builder.header("Content-Type", contentType);
+		}
+		String authorization = request.authorizationFromAuth();
+		if (authorization != null) {
+			try {
+				builder.header(Auth.HEADER, authorization);
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException("The auth token contains characters that are not allowed in a header.", e);
+			}
 		}
 
 		HttpRequest.BodyPublisher body = request.hasBody()

@@ -14,6 +14,7 @@ public final class RequestModel {
 	private final List<KeyValue> headers = new ArrayList<>();
 	private BodyType bodyType = BodyType.NONE;
 	private String body = "";
+	private final Auth auth = new Auth();
 	/** Id of the collection this request was opened from or saved to; empty when it is in none. */
 	private String collectionId = "";
 
@@ -87,6 +88,19 @@ public final class RequestModel {
 		return !collectionId.isEmpty();
 	}
 
+	/** Live, mutable authorization settings. */
+	public Auth getAuth() {
+		return auth;
+	}
+
+	/**
+	 * Value of the Authorization header the auth settings add, or {@code null} when they add none: no auth, empty
+	 * fields, or the user set an active {@code Authorization} header explicitly (which always wins).
+	 */
+	public String authorizationFromAuth() {
+		return hasActiveHeader(Auth.HEADER) ? null : auth.headerValue();
+	}
+
 	/** Whether a body will actually be sent. */
 	public boolean hasBody() {
 		return bodyType != BodyType.NONE && !body.isEmpty();
@@ -110,7 +124,7 @@ public final class RequestModel {
 	public boolean sameContent(RequestModel other) {
 		return other != null && name.equals(other.name) && method == other.method && url.equals(other.url)
 				&& params.equals(other.params) && headers.equals(other.headers) && bodyType == other.bodyType
-				&& body.equals(other.body);
+				&& body.equals(other.body) && auth.equals(other.auth);
 	}
 
 	/** Deep copy with a fresh id and no collection link, used for "Duplicate". */
@@ -123,6 +137,11 @@ public final class RequestModel {
 		headers.forEach(h -> copy.headers.add(h.copy()));
 		copy.bodyType = bodyType;
 		copy.body = body;
+		Auth a = auth.copy();
+		copy.auth.setType(a.getType());
+		copy.auth.setToken(a.getToken());
+		copy.auth.setUsername(a.getUsername());
+		copy.auth.setPassword(a.getPassword());
 		return copy;
 	}
 }

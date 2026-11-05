@@ -157,6 +157,19 @@ class CollectionsPanel extends Composite {
 	}
 
 	private void exportCollection(RequestCollection c) {
+		boolean includeSecrets = false;
+		if (CollectionFile.hasSecrets(c)) {
+			MessageDialog question = new MessageDialog(getShell(), "Export Collection", null,
+					"Some requests in \"" + c.getName() + "\" store auth tokens or passwords.\n\n"
+							+ "Leave them out to share the file safely: the auth type and username are kept, so "
+							+ "whoever imports it only has to fill in the secret.",
+					MessageDialog.QUESTION, 0, "Leave Out Secrets", "Include Secrets", "Cancel");
+			int choice = question.open();
+			if (choice == 2 || choice == -1) {
+				return;
+			}
+			includeSecrets = choice == 1;
+		}
 		FileDialog dialog = new FileDialog(getShell(), SWT.SAVE);
 		dialog.setText("Export Collection");
 		dialog.setFilterExtensions(new String[] { "*.json" });
@@ -167,7 +180,7 @@ class CollectionsPanel extends Composite {
 			return;
 		}
 		try {
-			CollectionFile.write(c, Path.of(file));
+			CollectionFile.write(c, Path.of(file), includeSecrets);
 			host.showStatus("Exported \"" + c.getName() + "\" to " + file);
 		} catch (IOException e) {
 			MessageDialog.openError(getShell(), "Export Collection", "Could not write " + file + ":\n" + e.getMessage());
