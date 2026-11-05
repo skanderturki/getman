@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.getman</groupId>
+    <artifactId>getman-parent</artifactId>
+    <version>0.6.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+  <artifactId>com.getman.doc</artifactId>
+  <version>0.6.0-SNAPSHOT</version>
+  <packaging>eclipse-plugin</packaging>
+
+  <!--
+    The user guide has one source: the Markdown in docs/user-guide (read on GitHub). This module turns it into
+    HTML for Eclipse Help (html/) and copies the screenshots it shows (screenshots/), so the relative links and
+    images work the same in both places. Both folders are build output and are git-ignored.
+  -->
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.ruleoftech</groupId>
+        <artifactId>markdown-page-generator-plugin</artifactId>
+        <version>2.4.2</version>
+        <executions>
+          <execution>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <inputDirectory>${project.basedir}/../../docs/user-guide</inputDirectory>
+          <outputDirectory>${project.basedir}/html</outputDirectory>
+          <headerHtmlFile>${project.basedir}/src-doc/header.html</headerHtmlFile>
+          <footerHtmlFile>${project.basedir}/src-doc/footer.html</footerHtmlFile>
+          <pegdownExtensions>TABLES,FENCED_CODE_BLOCKS,AUTOLINKS,STRIKETHROUGH,ANCHORLINKS</pegdownExtensions>
+          <transformRelativeMarkdownLinks>true</transformRelativeMarkdownLinks>
+          <inputEncoding>UTF-8</inputEncoding>
+          <outputEncoding>UTF-8</outputEncoding>
+          <defaultTitle>GetMan User Guide</defaultTitle>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-screenshots</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.basedir}/screenshots</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/../../docs/screenshots</directory>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <!-- mvn clean also removes the generated folders -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <configuration>
+          <filesets>
+            <fileset><directory>${project.basedir}/html</directory></fileset>
+            <fileset><directory>${project.basedir}/screenshots</directory></fileset>
+          </filesets>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

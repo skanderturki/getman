@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?NLS TYPE="org.eclipse.help.toc"?>
+<!-- Keep in sync with the contents list in docs/user-guide/index.md. -->
+<toc label="GetMan User Guide" topic="html/index.html">
+   <topic label="Getting started" href="html/getting-started.html"/>
+   <topic label="Requests and responses" href="html/requests.html"/>
+   <topic label="Authorization" href="html/auth.html"/>
+   <topic label="Collections and folders" href="html/collections.html"/>
+   <topic label="Environments and variables" href="html/environments.html"/>
+   <topic label="Import and export" href="html/import-export.html"/>
+   <topic label="History" href="html/history.html"/>
+   <topic label="Preferences" href="html/preferences.html"/>
+   <topic label="Troubleshooting and FAQ" href="html/troubleshooting.html"/>
+</toc>

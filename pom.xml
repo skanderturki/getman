@@ -20,6 +20,7 @@
   <modules>
     <module>bundles/com.getman.core</module>
     <module>bundles/com.getman.ui</module>
+    <module>bundles/com.getman.doc</module>
     <module>tests/com.getman.core.tests</module>
     <module>features/com.getman.feature</module>
     <module>releng/com.getman.site</module>

@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: GetMan User Guide
+Bundle-SymbolicName: com.getman.doc;singleton:=true
+Bundle-Version: 0.6.0.qualifier
+Bundle-Vendor: Jahiz Digital Solutions (Jahiz.tn)
+Automatic-Module-Name: com.getman.doc

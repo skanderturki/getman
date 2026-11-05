@@ -78,6 +78,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 	private static final String MANAGE_ENVIRONMENTS = "Manage Environments…";
 
 	private static final String HISTORY_FILE = "history.json";
+	private static final String USER_GUIDE = "/com.getman.doc/html/index.html";
 
 	private final HttpService http = new HttpService(GetmanPreferences.httpSettings());
 	private final List<HistoryEntry> history = new ArrayList<>();
@@ -543,6 +544,8 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		}));
 		toolbar.add(new Separator());
 		toolbar.add(action("New Collection", images, ISharedImages.IMG_OBJ_FOLDER, collectionsPanel::newCollection));
+		toolbar.add(new Separator());
+		toolbar.add(action("GetMan User Guide", images, ISharedImages.IMG_LCL_LINKTO_HELP, this::openUserGuide));
 
 		IMenuManager viewMenu = getViewSite().getActionBars().getMenuManager();
 		viewMenu.add(action("New Collection…", images, ISharedImages.IMG_OBJ_FOLDER, collectionsPanel::newCollection));
@@ -552,6 +555,13 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		viewMenu.add(new Separator());
 		viewMenu.add(action("Import cURL Command…", images, ISharedImages.IMG_TOOL_PASTE, this::importCurl));
 		viewMenu.add(action("Save As…", images, null, () -> saveSelected(true)));
+		viewMenu.add(new Separator());
+		viewMenu.add(action("User Guide", images, ISharedImages.IMG_LCL_LINKTO_HELP, this::openUserGuide));
+	}
+
+	/** Opens the user guide in Eclipse Help (contributed by the com.getman.doc bundle). */
+	private void openUserGuide() {
+		PlatformUI.getWorkbench().getHelpSystem().displayHelpResource(USER_GUIDE);
 	}
 
 	private static Action action(String text, ISharedImages images, String imageKey, Runnable run) {

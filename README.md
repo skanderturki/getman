@@ -5,6 +5,9 @@
 
 A free, lightweight REST/HTTP client built into the Eclipse IDE — no account, no cloud sync, no extra app.
 
+📖 **[User Guide](docs/user-guide/index.md)**, also available inside Eclipse under **Help › Help Contents ›
+GetMan User Guide** and from the **?** button in the GetMan view.
+
 ## Install
 
 1. In Eclipse, open **Help › Install New Software…**, click **Add…** and enter the update site:
@@ -89,6 +92,7 @@ Next up: **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMA
 | `bundles/com.getman.core` | UI-free logic: model, HTTP client, JSON, persistence, cURL export |
 | `bundles/com.getman.ui` | The Eclipse view (SWT/JFace) |
 | `tests/com.getman.core.tests` | JUnit 5 tests for core (test fragment) |
+| `bundles/com.getman.doc` | User guide for Eclipse Help, generated at build time from `docs/user-guide/*.md` |
 | `features/com.getman.feature` | Installable feature grouping the two bundles |
 | `releng/com.getman.site` | Builds the p2 update site |
 
@@ -110,7 +114,7 @@ To publish a release, copy the contents of `target/repository/` into the update-
 
 1. Use **Eclipse IDE for RCP and RAP Developers** (it includes PDE).
 2. **File › Import › General › Existing Projects into Workspace**, select this folder, tick *Search for nested
-   projects*, and import all five projects.
+   projects*, and import all six projects.
 3. Run it: right-click `com.getman.ui` › **Run As › Eclipse Application**. A second Eclipse starts with the
    plugin installed; open the GetMan view there.
 

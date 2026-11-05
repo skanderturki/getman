@@ -1,5 +1,8 @@
 # Build output
 target/
+# User guide HTML and images generated from docs/ by the com.getman.doc build
+bundles/com.getman.doc/html/
+bundles/com.getman.doc/screenshots/
 bin/
 *.class
 
