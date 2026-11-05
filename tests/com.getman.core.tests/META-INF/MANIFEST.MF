@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: GetMan Core Tests
+Bundle-SymbolicName: com.getman.core.tests
+Bundle-Version: 0.1.0.qualifier
+Bundle-Vendor: GetMan
+Fragment-Host: com.getman.core
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Automatic-Module-Name: com.getman.core.tests
+Import-Package: org.junit.jupiter.api;version="[5.0.0,6.0.0)",
+ org.junit.jupiter.api.function;version="[5.0.0,6.0.0)"

@@ -1,0 +1,20 @@
+# Build output
+target/
+bin/
+*.class
+
+# Eclipse workspace / IDE metadata (project files are committed; local settings are not)
+.metadata/
+.settings/
+.recommenders/
+*.launch.local
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/
+
+# Local assistant notes
+CLAUDE.md

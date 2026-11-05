@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension point="org.eclipse.ui.views">
+      <category
+            id="com.getman"
+            name="GetMan">
+      </category>
+      <view
+            id="com.getman.ui.views.GetmanView"
+            name="GetMan"
+            category="com.getman"
+            class="com.getman.ui.views.GetmanView"
+            icon="icons/getman.png"
+            restorable="true">
+      </view>
+   </extension>
+</plugin>
