@@ -3,11 +3,16 @@ package com.getman.ui.views;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 
+import java.util.function.Consumer;
+
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.custom.SashForm;
+import org.eclipse.swt.dnd.Clipboard;
+import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -20,6 +25,8 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Text;
 
+import com.getman.core.curl.CurlImporter;
+import com.getman.core.curl.CurlParseException;
 import com.getman.core.http.HttpService;
 import com.getman.core.json.Json;
 import com.getman.core.json.JsonException;
@@ -38,6 +45,7 @@ class RequestTab extends Composite {
 	private final RequestModel model;
 	private final HttpService http;
 	private final Runnable onChange;
+	private final Consumer<CurlImporter.Result> onCurlPasted;
 
 	private final Button sendButton;
 	private final CTabItem paramsTab;
@@ -47,11 +55,17 @@ class RequestTab extends Composite {
 	private final ResponsePanel responsePanel;
 	private CompletableFuture<ResponseModel> inFlight;
 
-	RequestTab(Composite parent, RequestModel model, HttpService http, Runnable onChange) {
+	/**
+	 * @param onCurlPasted called (asynchronously) when a cURL command is pasted into the URL field; the receiver
+	 *                     replaces this tab's request with the parsed one
+	 */
+	RequestTab(Composite parent, RequestModel model, HttpService http, Runnable onChange,
+			Consumer<CurlImporter.Result> onCurlPasted) {
 		super(parent, SWT.NONE);
 		this.model = model;
 		this.http = http;
 		this.onChange = onChange;
+		this.onCurlPasted = onCurlPasted;
 		setLayout(new FillLayout());
 
 		SashForm sash = new SashForm(this, SWT.VERTICAL);
@@ -78,8 +92,33 @@ class RequestTab extends Composite {
 
 		Text urlText = new Text(urlRow, SWT.SINGLE | SWT.BORDER);
 		urlText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-		urlText.setMessage("https://api.example.com/users");
+		urlText.setMessage("https://api.example.com/users  — or paste a cURL command");
 		urlText.setText(model.getUrl());
+		// Pasting a whole cURL command into the URL field imports it instead (typing never triggers this:
+		// Verify carries one character per keystroke).
+		urlText.addListener(SWT.Verify, e -> {
+			if (e.text.length() < 8 || !CurlImporter.looksLikeCurl(e.text)) {
+				return;
+			}
+			e.doit = false;
+			// A single-line field may receive only the first line of a multi-line paste; the clipboard has it all.
+			String command = e.text;
+			String clip = clipboardText();
+			if (CurlImporter.looksLikeCurl(clip) && clip.strip().startsWith(firstLine(e.text.strip()))) {
+				command = clip;
+			}
+			try {
+				CurlImporter.Result result = CurlImporter.parse(command);
+				getDisplay().asyncExec(() -> {
+					if (!isDisposed()) {
+						onCurlPasted.accept(result);
+					}
+				});
+			} catch (CurlParseException ex) {
+				getDisplay().asyncExec(() -> MessageDialog.openError(getShell(), "Paste cURL Command",
+						"Could not import the pasted cURL command:\n" + ex.getMessage()));
+			}
+		});
 		urlText.addListener(SWT.Modify, e -> {
 			model.setUrl(urlText.getText());
 			onChange.run();
@@ -163,6 +202,23 @@ class RequestTab extends Composite {
 		sash.setWeights(new int[] { 45, 55 });
 
 		installSendShortcut(this);
+	}
+
+	private String clipboardText() {
+		Clipboard clipboard = new Clipboard(getDisplay());
+		try {
+			Object contents = clipboard.getContents(TextTransfer.getInstance());
+			return contents instanceof String s ? s : null;
+		} finally {
+			clipboard.dispose();
+		}
+	}
+
+	private static String firstLine(String s) {
+		int nl = s.indexOf('\n');
+		int cr = s.indexOf('\r');
+		int end = nl < 0 ? cr : (cr < 0 ? nl : Math.min(nl, cr));
+		return end < 0 ? s : s.substring(0, end);
 	}
 
 	RequestModel getModel() {

@@ -56,14 +56,17 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
   body, with JSON pretty-printing. Copy the body or headers to the clipboard.
 - **Keyboard first** – `Ctrl+Enter` (`Cmd+Enter` on macOS) sends from anywhere in the tab; `Enter` in the URL
   field sends too. Click **Cancel** to abort a slow request.
-- **Copy as cURL** – share or reproduce a request in a terminal.
+- **Copy as cURL / import cURL** – share or reproduce a request in a terminal, and go the other way: paste a
+  `curl …` command into the URL field (or use **Import cURL Command…** in the toolbar) to turn it into a request.
+  Works with browsers' *Copy as cURL* (bash and Windows cmd), `--json`, `-G`, `-u`, Bearer headers and more;
+  anything that can't be represented is listed after the import.
 - **No dependencies** – uses the JDK's `java.net.http` client; runs on Java 17+.
 
 ## Roadmap
 
 1. Folders inside collections, drag and drop
 2. Store auth secrets in Eclipse secure storage instead of the workspace state file
-3. Paste a cURL command to create a request
+3. Multipart form bodies (`-F`)
 4. Request history
 5. Environments with `{{variables}}`
 6. Preferences page (timeouts, redirects, trust self-signed certificates for local development)

@@ -45,6 +45,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
 import com.getman.core.curl.CurlExporter;
+import com.getman.core.curl.CurlImporter;
 import com.getman.core.http.HttpService;
 import com.getman.core.model.RequestCollection;
 import com.getman.core.model.RequestModel;
@@ -143,15 +144,60 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 	private CTabItem addTab(RequestModel model, boolean select) {
 		CTabItem item = new CTabItem(tabs, SWT.NONE);
 		item.setData(model);
-		item.setControl(new RequestTab(tabs, model, http, () -> {
-			updateTabTitle(item);
-			scheduleSave();
-		}));
+		item.setControl(createRequestTab(item, model));
 		updateTabTitle(item);
 		if (select) {
 			tabs.setSelection(item);
 		}
 		return item;
+	}
+
+	private RequestTab createRequestTab(CTabItem item, RequestModel model) {
+		return new RequestTab(tabs, model, http, () -> {
+			updateTabTitle(item);
+			scheduleSave();
+		}, result -> replaceWithCurl(item, result));
+	}
+
+	/** A cURL command was pasted into a tab's URL field: that tab now shows the imported request. */
+	private void replaceWithCurl(CTabItem item, CurlImporter.Result result) {
+		if (item.isDisposed()) {
+			return;
+		}
+		RequestModel old = (RequestModel) item.getData();
+		RequestModel imported = result.request();
+		// Same tab, same identity: a saved request stays linked to its collection (and shows *).
+		imported.setId(old.getId());
+		imported.setCollectionId(old.getCollectionId());
+		if (old.isInCollection()) {
+			imported.setName(old.getName());
+		}
+		Control oldControl = item.getControl();
+		item.setData(imported);
+		item.setControl(createRequestTab(item, imported));
+		if (oldControl != null) {
+			oldControl.dispose();
+		}
+		updateTabTitle(item);
+		scheduleSave();
+		reportImport(result);
+	}
+
+	private void importCurl() {
+		CurlImportDialog dialog = new CurlImportDialog(tabs.getShell());
+		if (dialog.open() == Window.OK && dialog.getResult() != null) {
+			addTab(dialog.getResult().request(), true);
+			scheduleSave();
+			reportImport(dialog.getResult());
+		}
+	}
+
+	private void reportImport(CurlImporter.Result result) {
+		showStatus("Imported cURL command: " + result.request().getMethod() + " " + result.request().getUrl());
+		if (!result.warnings().isEmpty()) {
+			MessageDialog.openWarning(tabs.getShell(), "Import cURL Command",
+					"The request was imported, with these notes:\n\n- " + String.join("\n- ", result.warnings()));
+		}
 	}
 
 	private RequestModel newRequest() {
@@ -276,6 +322,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		}));
 		toolbar.add(action("Save to Collection (Ctrl+S)", images, ISharedImages.IMG_ETOOL_SAVE_EDIT,
 				() -> saveSelected(false)));
+		toolbar.add(action("Import cURL Command…", images, ISharedImages.IMG_TOOL_PASTE, this::importCurl));
 		toolbar.add(action("Duplicate Request", images, ISharedImages.IMG_TOOL_COPY, () -> {
 			CTabItem item = selectedItem();
 			if (item != null) {
@@ -295,6 +342,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		viewMenu.add(action("New Collection…", images, ISharedImages.IMG_OBJ_FOLDER, collectionsPanel::newCollection));
 		viewMenu.add(action("Import Collection…", images, null, collectionsPanel::importCollection));
 		viewMenu.add(new Separator());
+		viewMenu.add(action("Import cURL Command…", images, ISharedImages.IMG_TOOL_PASTE, this::importCurl));
 		viewMenu.add(action("Save As…", images, null, () -> saveSelected(true)));
 	}
 
