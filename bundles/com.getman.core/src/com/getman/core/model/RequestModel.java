@@ -15,6 +15,8 @@ public final class RequestModel implements CollectionNode {
 	private BodyType bodyType = BodyType.NONE;
 	private String body = "";
 	private final Auth auth = new Auth();
+	private final List<FormField> formFields = new ArrayList<>();
+	private String binaryFile = "";
 	/** Id of the collection this request was opened from or saved to; empty when it is in none. */
 	private String collectionId = "";
 
@@ -101,9 +103,28 @@ public final class RequestModel implements CollectionNode {
 		return hasActiveHeader(Auth.HEADER) ? null : auth.headerValue();
 	}
 
+	/** Live, mutable list of multipart form fields (used when the body type is {@link BodyType#MULTIPART}). */
+	public List<FormField> getFormFields() {
+		return formFields;
+	}
+
+	/** Path of the file sent as the body when the body type is {@link BodyType#BINARY}. */
+	public String getBinaryFile() {
+		return binaryFile;
+	}
+
+	public void setBinaryFile(String binaryFile) {
+		this.binaryFile = binaryFile == null ? "" : binaryFile;
+	}
+
 	/** Whether a body will actually be sent. */
 	public boolean hasBody() {
-		return bodyType != BodyType.NONE && !body.isEmpty();
+		return switch (bodyType) {
+		case NONE -> false;
+		case MULTIPART -> formFields.stream().anyMatch(FormField::isActive);
+		case BINARY -> !binaryFile.isBlank();
+		default -> !body.isEmpty();
+		};
 	}
 
 	/** Case-insensitive lookup of an active header the user set explicitly. */
@@ -124,7 +145,8 @@ public final class RequestModel implements CollectionNode {
 	public boolean sameContent(RequestModel other) {
 		return other != null && name.equals(other.name) && method == other.method && url.equals(other.url)
 				&& params.equals(other.params) && headers.equals(other.headers) && bodyType == other.bodyType
-				&& body.equals(other.body) && auth.equals(other.auth);
+				&& body.equals(other.body) && auth.equals(other.auth) && formFields.equals(other.formFields)
+				&& binaryFile.equals(other.binaryFile);
 	}
 
 	/** Deep copy with a fresh id and no collection link, used for "Duplicate". */
@@ -137,11 +159,12 @@ public final class RequestModel implements CollectionNode {
 		headers.forEach(h -> copy.headers.add(h.copy()));
 		copy.bodyType = bodyType;
 		copy.body = body;
-		Auth a = auth.copy();
-		copy.auth.setType(a.getType());
-		copy.auth.setToken(a.getToken());
-		copy.auth.setUsername(a.getUsername());
-		copy.auth.setPassword(a.getPassword());
+		copy.auth.setType(auth.getType());
+		copy.auth.setToken(auth.getToken());
+		copy.auth.setUsername(auth.getUsername());
+		copy.auth.setPassword(auth.getPassword());
+		formFields.forEach(f -> copy.formFields.add(f.copy()));
+		copy.binaryFile = binaryFile;
 		return copy;
 	}
 }

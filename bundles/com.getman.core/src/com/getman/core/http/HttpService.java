@@ -95,8 +95,12 @@ public final class HttpService {
 		URI uri = UrlBuilder.buildUri(request);
 		HttpRequest.Builder builder = HttpRequest.newBuilder(uri).timeout(settings.requestTimeout());
 
+		BodyEncoder.Encoded body = BodyEncoder.encode(request);
 		for (KeyValue header : request.getHeaders()) {
-			if (header.isActive()) {
+			// A multipart body needs its own Content-Type (with the boundary); a user-set one would break it.
+			boolean replacedContentType = body.contentType() != null
+					&& header.getKey().trim().equalsIgnoreCase("Content-Type");
+			if (header.isActive() && !replacedContentType) {
 				try {
 					builder.header(header.getKey().trim(), header.getValue());
 				} catch (IllegalArgumentException e) {
@@ -106,7 +110,9 @@ public final class HttpService {
 			}
 		}
 		String contentType = request.getBodyType().contentType();
-		if (request.hasBody() && contentType != null && !request.hasActiveHeader("Content-Type")) {
+		if (body.contentType() != null) {
+			builder.header("Content-Type", body.contentType());
+		} else if (request.hasBody() && contentType != null && !request.hasActiveHeader("Content-Type")) {
 			builder.header("Content-Type", contentType);
 		}
 		String authorization = request.authorizationFromAuth();
@@ -118,11 +124,8 @@ public final class HttpService {
 			}
 		}
 
-		HttpRequest.BodyPublisher body = request.hasBody()
-				? HttpRequest.BodyPublishers.ofString(request.getBody(), StandardCharsets.UTF_8)
-				: HttpRequest.BodyPublishers.noBody();
 		HttpMethod method = request.getMethod();
-		builder.method(method.name(), body);
+		builder.method(method.name(), body.publisher());
 		return builder.build();
 	}
 

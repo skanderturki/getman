@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import com.getman.core.model.Auth;
 import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
+import com.getman.core.model.FormField;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestModel;
@@ -95,7 +96,9 @@ public final class CurlImporter {
 		private boolean head;
 		private boolean get;
 		private boolean json;
-		private boolean formIgnored;
+		private final List<FormField> formFields = new ArrayList<>();
+		private String binaryFile;
+		private boolean upload;
 
 		Parser(List<String> args, boolean truncated) {
 			this.args = args;
@@ -152,12 +155,13 @@ public final class CurlImporter {
 			switch (opt) {
 			case "-X", "--request" -> method = value(opt, it).toUpperCase(Locale.ROOT);
 			case "-H", "--header" -> header(value(opt, it));
-			case "-d", "--data", "--data-ascii", "--data-binary" -> data(value(opt, it), true);
-			case "--data-raw" -> data(value(opt, it), false);
+			case "-d", "--data", "--data-ascii" -> data(value(opt, it), true, false);
+			case "--data-binary" -> data(value(opt, it), true, true);
+			case "--data-raw" -> data(value(opt, it), false, false);
 			case "--data-urlencode" -> dataUrlencode(value(opt, it));
 			case "--json" -> {
 				json = true;
-				data(value(opt, it), true);
+				data(value(opt, it), true, false);
 			}
 			case "-u", "--user" -> user(value(opt, it));
 			case "--oauth2-bearer" -> {
@@ -170,14 +174,12 @@ public final class CurlImporter {
 			case "--url" -> positionals.add(0, value(opt, it));
 			case "-G", "--get" -> get = true;
 			case "-I", "--head" -> head = true;
-			case "-F", "--form", "--form-string" -> {
-				value(opt, it);
-				if (!formIgnored) {
-					warnings.add("Multipart form fields (-F) are not supported yet and were skipped.");
-					formIgnored = true;
-				}
+			case "-F", "--form" -> form(value(opt, it), false);
+			case "--form-string" -> form(value(opt, it), true);
+			case "-T", "--upload-file" -> {
+				binaryFile = value(opt, it);
+				upload = true;
 			}
-			case "-T", "--upload-file" -> warnings.add("Uploaded file \"" + value(opt, it) + "\" (-T) was not imported.");
 			case "-K", "--config" -> warnings.add("Config file \"" + value(opt, it) + "\" (-K) was not read.");
 			case "-r", "--range" -> request.getHeaders().add(new KeyValue("Range", "bytes=" + value(opt, it)));
 			case "--digest", "--ntlm", "--negotiate", "--anyauth" ->
@@ -210,13 +212,39 @@ public final class CurlImporter {
 			request.getHeaders().add(new KeyValue(name, value));
 		}
 
-		private void data(String value, boolean fileAllowed) {
+		private void data(String value, boolean fileAllowed, boolean binary) {
 			if (fileAllowed && value.startsWith("@")) {
-				warnings.add("The body was read from file \"" + value.substring(1) + "\" by cURL and could not be "
-						+ "imported; paste the file's content into the Body tab.");
+				// The whole body comes from a file: send that file as a binary body.
+				binaryFile = value.substring(1);
+				if (!binary) {
+					warnings.add("cURL -d removes line breaks from \"" + binaryFile + "\"; GetMan sends the file "
+							+ "unchanged (as with --data-binary).");
+				}
 				return;
 			}
 			dataParts.add(value);
+		}
+
+		/** {@code -F name=value}, {@code -F name=@file;type=...}; {@code --form-string} is always literal text. */
+		private void form(String raw, boolean literal) {
+			int eq = raw.indexOf('=');
+			if (eq <= 0) {
+				warnings.add("Form field \"" + raw + "\" has no name=value and was skipped.");
+				return;
+			}
+			String name = raw.substring(0, eq);
+			String value = raw.substring(eq + 1);
+			if (!literal && value.startsWith("@")) {
+				String path = value.substring(1);
+				int semicolon = path.indexOf(';'); // ;type=... / ;filename=... options
+				formFields.add(FormField.file(name, semicolon >= 0 ? path.substring(0, semicolon) : path));
+			} else if (!literal && value.startsWith("<")) {
+				warnings.add("Form field \"" + name + "\" reads its text from file \"" + value.substring(1)
+						+ "\" (-F name=<file); it was added as a file upload instead.");
+				formFields.add(FormField.file(name, value.substring(1)));
+			} else {
+				formFields.add(FormField.text(name, value));
+			}
 		}
 
 		/** curl's rules: "content", "=content", "name=content", "@file", "name@file". */
@@ -279,18 +307,36 @@ public final class CurlImporter {
 				}
 			} else if (head) {
 				m = HttpMethod.HEAD;
-			} else if (hasData) {
+			} else if (upload) {
+				m = HttpMethod.PUT; // curl -T uploads with PUT
+			} else if (hasData || !formFields.isEmpty() || binaryFile != null) {
 				m = HttpMethod.POST;
 			} else {
 				m = HttpMethod.GET;
 			}
 			request.setMethod(m);
+			int bodies = (hasData ? 1 : 0) + (formFields.isEmpty() ? 0 : 1) + (binaryFile != null ? 1 : 0);
+			if (bodies > 1) {
+				warnings.add("The command mixes -d, -F and file bodies, which cURL does not allow together; only "
+						+ "one was imported.");
+			}
 
 			if (json) {
 				addHeaderIfMissing("Content-Type", "application/json");
 				addHeaderIfMissing("Accept", "application/json");
 			}
-			if (hasData) {
+			if (!formFields.isEmpty()) {
+				request.setBodyType(BodyType.MULTIPART);
+				request.getFormFields().addAll(formFields);
+				// The multipart Content-Type (with its boundary) is generated when sending.
+				request.getHeaders().removeIf(h -> h.getKey().equalsIgnoreCase("Content-Type")
+						&& h.getValue().trim().toLowerCase(Locale.ROOT).startsWith("multipart/form-data"));
+			} else if (binaryFile != null) {
+				request.setBodyType(BodyType.BINARY);
+				request.setBinaryFile(binaryFile);
+				request.getHeaders().removeIf(h -> h.getKey().equalsIgnoreCase("Content-Type")
+						&& h.getValue().trim().equalsIgnoreCase(BodyType.BINARY.contentType()));
+			} else if (hasData) {
 				applyBody(data);
 			}
 			convertAuthorizationHeader();

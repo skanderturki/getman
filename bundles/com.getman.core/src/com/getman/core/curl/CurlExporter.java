@@ -3,6 +3,8 @@ package com.getman.core.curl;
 import com.getman.core.http.UrlBuilder;
 import com.getman.core.model.Auth;
 import com.getman.core.model.AuthType;
+import com.getman.core.model.BodyType;
+import com.getman.core.model.FormField;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestModel;
@@ -35,11 +37,24 @@ public final class CurlExporter {
 				sb.append(" \\\n  -H ").append(quote(Auth.HEADER + ": " + auth.headerValue()));
 			}
 		}
-		String contentType = request.getBodyType().contentType();
+		BodyType type = request.getBodyType();
+		if (request.hasBody() && type == BodyType.MULTIPART) {
+			// curl writes the multipart Content-Type (with boundary) itself.
+			for (FormField f : request.getFormFields()) {
+				if (f.isActive()) {
+					sb.append(f.isFile() ? " \\\n  -F " + quote(f.getKey().trim() + "=@" + f.getValue())
+							: " \\\n  --form-string " + quote(f.getKey().trim() + "=" + f.getValue()));
+				}
+			}
+			return sb.toString();
+		}
+		String contentType = type.contentType();
 		if (request.hasBody() && contentType != null && !request.hasActiveHeader("Content-Type")) {
 			sb.append(" \\\n  -H ").append(quote("Content-Type: " + contentType));
 		}
-		if (request.hasBody()) {
+		if (request.hasBody() && type == BodyType.BINARY) {
+			sb.append(" \\\n  --data-binary ").append(quote("@" + request.getBinaryFile()));
+		} else if (request.hasBody()) {
 			sb.append(" \\\n  --data-raw ").append(quote(request.getBody()));
 		}
 		return sb.toString();

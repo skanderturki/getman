@@ -19,6 +19,7 @@ import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
 import com.getman.core.model.Environment;
 import com.getman.core.model.Folder;
+import com.getman.core.model.FormField;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.NodeContainer;
@@ -119,8 +120,7 @@ public final class PostmanImporter {
 		private final Set<String> unsupportedMethods = new LinkedHashSet<>();
 		private int scripts;
 		private int requests;
-		private int fileBodies;
-		private int formDataConverted;
+		private int missingFilePaths;
 		private boolean dynamicVariables;
 
 		CollectionImport(Map<?, ?> root) {
@@ -285,8 +285,8 @@ public final class PostmanImporter {
 				});
 				r.setBody(text);
 			}
-			case "urlencoded" -> formBody(body.get("urlencoded"), r, false);
-			case "formdata" -> formBody(body.get("formdata"), r, true);
+			case "urlencoded" -> urlencodedBody(body.get("urlencoded"), r);
+			case "formdata" -> multipartBody(body.get("formdata"), r);
 			case "graphql" -> {
 				Map<?, ?> g = map(body.get("graphql"));
 				Map<String, Object> payload = new LinkedHashMap<>();
@@ -304,35 +304,62 @@ public final class PostmanImporter {
 				r.setBodyType(BodyType.JSON);
 				r.setBody(Json.writePretty(payload));
 			}
-			case "file" -> fileBodies++;
+			case "file" -> {
+				String path = firstPath(map(body.get("file")).get("src"));
+				r.setBodyType(BodyType.BINARY);
+				r.setBinaryFile(path);
+				if (path.isEmpty()) {
+					missingFilePaths++;
+				}
+			}
 			default -> {
 			}
 			}
 		}
 
-		private void formBody(Object fields, RequestModel r, boolean multipart) {
+		private static void urlencodedBody(Object fields, RequestModel r) {
 			List<String> pairs = new ArrayList<>();
-			boolean skippedFile = false;
 			for (Object o : list(fields)) {
-				if (!(o instanceof Map<?, ?> f) || (f.get("disabled") instanceof Boolean b && b)) {
-					continue;
+				if (o instanceof Map<?, ?> f && !(f.get("disabled") instanceof Boolean b && b)) {
+					pairs.add(encodeKeepingVariables(str(f.get("key"))) + "=" + encodeKeepingVariables(str(f.get("value"))));
 				}
-				if ("file".equals(f.get("type"))) {
-					skippedFile = true;
-					continue;
-				}
-				pairs.add(encodeKeepingVariables(str(f.get("key"))) + "=" + encodeKeepingVariables(str(f.get("value"))));
-			}
-			if (skippedFile) {
-				fileBodies++;
-			}
-			if (multipart && !pairs.isEmpty()) {
-				formDataConverted++;
 			}
 			if (!pairs.isEmpty()) {
 				r.setBodyType(BodyType.FORM);
 				r.setBody(String.join("&", pairs));
 			}
+		}
+
+		/** Text and file fields; disabled fields are kept (disabled), as Postman shows them. */
+		private void multipartBody(Object fields, RequestModel r) {
+			for (Object o : list(fields)) {
+				if (!(o instanceof Map<?, ?> f) || str(f.get("key")).isBlank()) {
+					continue;
+				}
+				boolean enabled = !(f.get("disabled") instanceof Boolean b && b);
+				if ("file".equals(f.get("type"))) {
+					String path = firstPath(f.get("src"));
+					if (path.isEmpty()) {
+						missingFilePaths++;
+					}
+					r.getFormFields().add(new FormField(str(f.get("key")), path, enabled, true));
+				} else {
+					r.getFormFields().add(new FormField(str(f.get("key")), str(f.get("value")), enabled, false));
+				}
+			}
+			if (!r.getFormFields().isEmpty()) {
+				r.setBodyType(BodyType.MULTIPART);
+				r.getHeaders().removeIf(h -> h.getKey().equalsIgnoreCase("Content-Type")
+						&& h.getValue().toLowerCase(Locale.ROOT).startsWith("multipart/form-data"));
+			}
+		}
+
+		/** Postman stores a file path as a string, or a list when several files were picked (first one used). */
+		private static String firstPath(Object src) {
+			if (src instanceof List<?> l) {
+				return l.isEmpty() ? "" : str(l.get(0));
+			}
+			return str(src);
 		}
 
 		private static BodyType typeFromContentType(RequestModel r) {
@@ -443,12 +470,9 @@ public final class PostmanImporter {
 			if (!unsupportedMethods.isEmpty()) {
 				warnings.add("Method(s) " + String.join(", ", unsupportedMethods) + " are not supported; GET was used.");
 			}
-			if (formDataConverted > 0) {
-				warnings.add(formDataConverted + " multipart form-data body(ies) were imported as URL-encoded forms "
-						+ "(multipart support is planned for GetMan 0.7).");
-			}
-			if (fileBodies > 0) {
-				warnings.add(fileBodies + " file upload(s) or binary body(ies) could not be imported.");
+			if (missingFilePaths > 0) {
+				warnings.add(missingFilePaths + " file field(s) or file body(ies) have no file path in the export; "
+						+ "choose the files in the Body tab.");
 			}
 			if (dynamicVariables) {
 				warnings.add("Postman dynamic variables such as {{$guid}} or {{$timestamp}} are not supported "

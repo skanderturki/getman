@@ -41,7 +41,8 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Features (0.6)
 
-- **Request tabs** – method, URL, query params, headers and body (JSON, text, XML, form). Double-click a tab to
+- **Request tabs** – method, URL, query params, headers and body: JSON, text, XML, URL-encoded form,
+  **multipart form data** (text fields and file uploads) or a **binary file**. Double-click a tab to
   rename it; right-click for Duplicate, Copy as cURL, Close, Close Others.
 - **Environments and `{{variables}}`** – define Local, Staging, Production… in **Manage Environments** and pick
   one from the dropdown in the GetMan toolbar. `{{name}}` works in the URL, params, headers, body and auth, and
@@ -57,9 +58,9 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
   between folders and collections (or use *Move To…*). Right-click for New Request, New Folder, Rename (F2),
   Duplicate, Delete (Del), Export… and collection **Variables…**.
 - **Import from Postman** – right-click › *Import (GetMan or Postman)…* reads Postman Collection v2.0/v2.1 files
-  (folders, headers, bodies, Bearer/Basic/API-key auth including inherited auth, collection variables) and
-  Postman environment files. Anything that can't be converted (scripts, OAuth, file uploads) is listed after the
-  import.
+  (folders, headers, bodies including form-data and file bodies, Bearer/Basic/API-key auth including inherited
+  auth, collection variables) and Postman environment files. Anything that can't be converted (scripts, OAuth)
+  is listed after the import.
 - **History** – every request you send is listed in the **History** tab next to Collections, grouped by day, with
   its status and time. Double-click to open it again (it keeps its `{{variables}}`). Delete entries or clear it all.
 - **Preferences** – *Window › Preferences › GetMan*: connect/request timeouts, follow redirects, history size,
@@ -74,12 +75,12 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 - **Copy as cURL / import cURL** – share or reproduce a request in a terminal, and go the other way: paste a
   `curl …` command into the URL field (or use **Import cURL Command…** in the toolbar) to turn it into a request.
   Works with browsers' *Copy as cURL* (bash and Windows cmd), `--json`, `-G`, `-u`, Bearer headers and more;
-  anything that can't be represented is listed after the import.
+  `-F` uploads and `--data-binary @file` too; anything that can't be represented is listed after the import.
 - **No dependencies** – uses the JDK's `java.net.http` client; runs on Java 17+.
 
 ## Roadmap
 
-Next up: **multipart uploads** (0.7) and **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
+Next up: **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
 
 ## Project layout
 

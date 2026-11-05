@@ -14,6 +14,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.custom.SashForm;
+import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.layout.FillLayout;
@@ -24,6 +25,7 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Text;
@@ -43,6 +45,7 @@ import com.getman.core.model.RequestModel;
 import com.getman.core.model.ResponseModel;
 import com.getman.core.variables.VariableResolver;
 import com.getman.ui.widgets.AuthPanel;
+import com.getman.ui.widgets.FormDataTable;
 import com.getman.ui.widgets.KeyValueTable;
 import com.getman.ui.widgets.ResponsePanel;
 
@@ -185,20 +188,31 @@ class RequestTab extends Composite {
 		formatButton.setText("Format JSON");
 		bodyError = new Label(bodyArea, SWT.NONE);
 		bodyError.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-		Text bodyText = new Text(bodyArea, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL);
+		// One editor per kind of body, stacked: text, multipart form fields, or a binary file.
+		Composite bodyStack = new Composite(bodyArea, SWT.NONE);
+		bodyStack.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
+		StackLayout bodyStackLayout = new StackLayout();
+		bodyStack.setLayout(bodyStackLayout);
+		Text bodyText = new Text(bodyStack, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL);
 		bodyText.setFont(JFaceResources.getTextFont());
-		bodyText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
 		bodyText.setText(model.getBody());
+		FormDataTable formTable = new FormDataTable(bodyStack, model.getFormFields(), onChange);
+		Composite binaryPage = createBinaryPage(bodyStack);
 		bodyText.addListener(SWT.Modify, e -> {
 			model.setBody(bodyText.getText());
 			bodyError.setText("");
 			onChange.run();
 		});
 		Runnable syncBodyControls = () -> {
-			boolean hasBody = model.getBodyType() != BodyType.NONE;
+			BodyType type = model.getBodyType();
+			boolean hasBody = type != BodyType.NONE;
 			bodyText.setEnabled(hasBody);
-			formatButton.setEnabled(model.getBodyType() == BodyType.JSON);
+			formatButton.setEnabled(type == BodyType.JSON);
+			formatButton.setVisible(type.isText() || type == BodyType.NONE);
 			bodyText.setMessage(hasBody ? "" : "Choose a body type to send a body.");
+			bodyStackLayout.topControl = type == BodyType.MULTIPART ? formTable
+					: type == BodyType.BINARY ? binaryPage : bodyText;
+			bodyStack.layout();
 		};
 		bodyTypeCombo.addListener(SWT.Selection, e -> {
 			model.setBodyType(BodyType.values()[bodyTypeCombo.getSelectionIndex()]);
@@ -274,6 +288,38 @@ class RequestTab extends Composite {
 		variableHint.setVisible(show);
 		((GridData) variableHint.getLayoutData()).exclude = !show;
 		variableHint.getParent().layout(true);
+	}
+
+	/** File chooser for a Binary File body: the path (may use {{variables}}) and a Browse button. */
+	private Composite createBinaryPage(Composite parent) {
+		Composite page = new Composite(parent, SWT.NONE);
+		page.setLayout(new GridLayout(3, false));
+		new Label(page, SWT.NONE).setText("File:");
+		Text path = new Text(page, SWT.SINGLE | SWT.BORDER);
+		path.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+		path.setMessage("Path of the file to send as the request body");
+		path.setText(model.getBinaryFile());
+		path.addListener(SWT.Modify, e -> {
+			model.setBinaryFile(path.getText());
+			onChange.run();
+		});
+		Button browse = new Button(page, SWT.PUSH);
+		browse.setText("Browse…");
+		browse.addListener(SWT.Selection, e -> {
+			FileDialog dialog = new FileDialog(getShell(), SWT.OPEN);
+			dialog.setText("Choose the File to Send");
+			String chosen = dialog.open();
+			if (chosen != null) {
+				path.setText(chosen);
+			}
+		});
+		Label hint = new Label(page, SWT.WRAP);
+		hint.setText("The file is sent as-is, with Content-Type application/octet-stream unless you set a "
+				+ "Content-Type header. The path is saved, not the file's content.");
+		GridData hintData = new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1);
+		hintData.widthHint = 400;
+		hint.setLayoutData(hintData);
+		return page;
 	}
 
 	RequestModel getModel() {

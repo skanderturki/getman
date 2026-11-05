@@ -12,6 +12,7 @@ import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
 import com.getman.core.model.CollectionNode;
 import com.getman.core.model.Folder;
+import com.getman.core.model.FormField;
 import com.getman.core.model.Environment;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
@@ -168,6 +169,21 @@ public final class StateCodec {
 		m.put("headers", kvToList(r.getHeaders()));
 		m.put("bodyType", r.getBodyType().name());
 		m.put("body", r.getBody());
+		if (!r.getFormFields().isEmpty()) {
+			List<Object> fields = new ArrayList<>();
+			for (FormField f : r.getFormFields()) {
+				Map<String, Object> fm = new LinkedHashMap<>();
+				fm.put("key", f.getKey());
+				fm.put("value", f.getValue());
+				fm.put("enabled", f.isEnabled());
+				fm.put("file", f.isFile());
+				fields.add(fm);
+			}
+			m.put("formFields", fields);
+		}
+		if (!r.getBinaryFile().isEmpty()) {
+			m.put("binaryFile", r.getBinaryFile());
+		}
 		Auth auth = r.getAuth();
 		if (auth.getType() != AuthType.NONE || !auth.getUsername().isEmpty() || auth.hasSecrets()) {
 			Map<String, Object> am = new LinkedHashMap<>();
@@ -193,6 +209,13 @@ public final class StateCodec {
 		r.getHeaders().addAll(kvFromList(m.get("headers")));
 		r.setBodyType(BodyType.parse(string(m.get("bodyType"))));
 		r.setBody(string(m.get("body")));
+		for (Object o : list(m.get("formFields"))) {
+			if (o instanceof Map<?, ?> fm) {
+				r.getFormFields().add(new FormField(string(fm.get("key")), string(fm.get("value")),
+						!(fm.get("enabled") instanceof Boolean b) || b, fm.get("file") instanceof Boolean f && f));
+			}
+		}
+		r.setBinaryFile(string(m.get("binaryFile")));
 		r.setCollectionId(string(m.get("collectionId")));
 		if (m.get("auth") instanceof Map<?, ?> am) {
 			Auth auth = r.getAuth();

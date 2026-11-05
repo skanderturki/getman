@@ -14,6 +14,7 @@ import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
 import com.getman.core.model.Environment;
 import com.getman.core.model.Folder;
+import com.getman.core.model.FormField;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestCollection;
@@ -151,8 +152,9 @@ class PostmanImporterTest {
 		assertEquals("user=ada+lovelace&pass={{password}}", login.getBody());
 
 		RequestModel upload = find(c, "Upload");
-		assertEquals(BodyType.FORM, upload.getBodyType());
-		assertEquals("title=cv", upload.getBody());
+		assertEquals(BodyType.MULTIPART, upload.getBodyType());
+		assertEquals(List.of(FormField.text("title", "cv"), FormField.file("file", "/tmp/a.pdf")),
+				upload.getFormFields());
 
 		RequestModel gql = find(c, "GraphQL");
 		assertEquals(BodyType.JSON, gql.getBodyType());
@@ -165,10 +167,34 @@ class PostmanImporterTest {
 		List<String> w = PostmanImporter.importCollection(V21).warnings();
 		assertTrue(w.stream().anyMatch(s -> s.startsWith("2 pre-request or test script")), w.toString());
 		assertTrue(w.stream().anyMatch(s -> s.contains("oauth2")), w.toString());
-		assertTrue(w.stream().anyMatch(s -> s.contains("multipart")), w.toString());
-		assertTrue(w.stream().anyMatch(s -> s.contains("file upload")), w.toString());
 		assertTrue(w.stream().anyMatch(s -> s.contains("{{$guid}}")), w.toString());
-		assertEquals(5, w.size(), w.toString());
+		assertEquals(3, w.size(), w.toString());
+	}
+
+	@Test
+	void fileBodiesAndMissingPaths() {
+		String json = """
+				{"info": {"name": "Files", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+				 "item": [
+				   {"name": "bin", "request": {"method": "PUT", "url": "http://x/up",
+				      "body": {"mode": "file", "file": {"src": "C:/data/photo.jpg"}}}},
+				   {"name": "multi", "request": {"method": "POST", "url": "http://x/m",
+				      "header": [{"key": "Content-Type", "value": "multipart/form-data"}],
+				      "body": {"mode": "formdata", "formdata": [
+				        {"key": "docs", "type": "file", "src": ["/a.txt", "/b.txt"]},
+				        {"key": "empty", "type": "file", "src": null},
+				        {"key": "note", "value": "hi", "type": "text", "disabled": true}]}}}]}
+				""";
+		PostmanImporter.CollectionResult res = PostmanImporter.importCollection(json);
+		RequestModel bin = find(res.collection(), "bin");
+		assertEquals(BodyType.BINARY, bin.getBodyType());
+		assertEquals("C:/data/photo.jpg", bin.getBinaryFile());
+
+		RequestModel multi = find(res.collection(), "multi");
+		assertEquals(List.of(FormField.file("docs", "/a.txt"), FormField.file("empty", ""),
+				new FormField("note", "hi", false, false)), multi.getFormFields());
+		assertTrue(multi.getHeaders().isEmpty()); // our own multipart Content-Type (with boundary) is used
+		assertEquals(1, res.warnings().size(), res.warnings().toString());
 	}
 
 	@Test

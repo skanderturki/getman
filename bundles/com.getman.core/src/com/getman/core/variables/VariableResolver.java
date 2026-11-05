@@ -8,6 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.getman.core.model.Auth;
+import com.getman.core.model.FormField;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestModel;
 
@@ -72,6 +73,11 @@ public final class VariableResolver {
 		resolveRows(r.getParams());
 		resolveRows(r.getHeaders());
 		r.setBody(resolve(r.getBody()));
+		for (FormField f : r.getFormFields()) {
+			f.setKey(resolve(f.getKey()));
+			f.setValue(resolve(f.getValue()));
+		}
+		r.setBinaryFile(resolve(r.getBinaryFile()));
 		Auth auth = r.getAuth();
 		auth.setToken(resolve(auth.getToken()));
 		auth.setUsername(resolve(auth.getUsername()));
@@ -99,7 +105,14 @@ public final class VariableResolver {
 			}
 		}
 		if (request.hasBody()) {
-			resolver.resolve(request.getBody());
+			switch (request.getBodyType()) {
+			case MULTIPART -> request.getFormFields().stream().filter(FormField::isActive).forEach(f -> {
+				resolver.resolve(f.getKey());
+				resolver.resolve(f.getValue());
+			});
+			case BINARY -> resolver.resolve(request.getBinaryFile());
+			default -> resolver.resolve(request.getBody());
+			}
 		}
 		Auth auth = request.getAuth();
 		switch (auth.getType()) {

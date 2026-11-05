@@ -325,9 +325,23 @@ class CollectionsPanel extends Composite {
 		try {
 			CollectionFile.write(c, Path.of(file), includeSecrets);
 			host.showStatus("Exported \"" + c.getName() + "\" to " + file);
+			long withFiles = c.allRequests().stream().filter(CollectionsPanel::usesFiles).count();
+			if (withFiles > 0) {
+				MessageDialog.openInformation(getShell(), "Export Collection", withFiles + " request(s) in \""
+						+ c.getName() + "\" upload local files. The export contains their file paths, not the files "
+						+ "themselves; whoever imports it needs the files at the same paths (or can pick them again).");
+			}
 		} catch (IOException e) {
 			MessageDialog.openError(getShell(), "Export Collection", "Could not write " + file + ":\n" + e.getMessage());
 		}
+	}
+
+	private static boolean usesFiles(RequestModel r) {
+		return switch (r.getBodyType()) {
+		case BINARY -> !r.getBinaryFile().isBlank();
+		case MULTIPART -> r.getFormFields().stream().anyMatch(f -> f.isFile() && !f.getValue().isBlank());
+		default -> false;
+		};
 	}
 
 	private void editVariables(RequestCollection c) {
