@@ -16,7 +16,7 @@ Values for https://marketplace.eclipse.org/node/add/resource
 | Categories | Testing, Web Services, Tools, Web, Network |
 | Markets | Tools |
 | Tags | rest, http, api, client, postman, json, curl |
-| Version number | 0.5.0 |
+| Version number | 0.6.0 |
 | Update Site URL | https://skanderturki.github.io/getman-update-site/ |
 | Supported Eclipse Releases | 2024-03 (4.31) through 2026-12 (4.42) |
 | Supported Platforms | Windows, Mac, Linux/GTK |
@@ -36,6 +36,7 @@ GetMan is a free, lightweight REST/HTTP client inside the Eclipse IDE. No accoun
   files to share with your team.
 - **Full response details**: status, time, size, HTTP version, every response header, and the body with JSON
   pretty-printing.
+- **History and preferences**: every sent request is kept in a History tab; timeouts, redirects and HTTPS certificate handling (self-signed on localhost works out of the box) are configurable.
 - **Saved automatically**: open tabs and collections survive Eclipse restarts.
 - **Copy as cURL and import cURL**: reproduce a request in a terminal, or paste a curl command (e.g. from browser dev tools) to create a request.
 - **No dependencies**: uses the JDK's HTTP client and runs on Java 17+.
