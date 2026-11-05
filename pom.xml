@@ -46,6 +46,9 @@
         <artifactId>target-platform-configuration</artifactId>
         <version>${tycho.version}</version>
         <configuration>
+          <!-- Resolve against the BREE (a known profile) rather than the build JDK; otherwise Tycho
+               publishes a synthetic a.jre.javase unit for the build JDK into the update site. -->
+          <executionEnvironment>JavaSE-17</executionEnvironment>
           <environments>
             <environment><os>win32</os><ws>win32</ws><arch>x86_64</arch></environment>
             <environment><os>linux</os><ws>gtk</ws><arch>x86_64</arch></environment>
