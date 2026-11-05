@@ -60,6 +60,11 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
   (folders, headers, bodies, Bearer/Basic/API-key auth including inherited auth, collection variables) and
   Postman environment files. Anything that can't be converted (scripts, OAuth, file uploads) is listed after the
   import.
+- **History** – every request you send is listed in the **History** tab next to Collections, grouped by day, with
+  its status and time. Double-click to open it again (it keeps its `{{variables}}`). Delete entries or clear it all.
+- **Preferences** – *Window › Preferences › GetMan*: connect/request timeouts, follow redirects, history size,
+  and HTTPS certificates. By default self-signed certificates are accepted **on localhost only**, so local dev
+  servers on `https://localhost` just work; choose *Only trusted certificates* for strict checking everywhere.
 - **Saved automatically** – collections and open tabs are stored as JSON in the plugin's state folder
   (`<workspace>/.metadata/.plugins/com.getman.ui/state.json`) and restored when Eclipse restarts.
 - **Full response details** – status (colour-coded), time, size, HTTP version, all response headers, and the
@@ -74,7 +79,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Roadmap
 
-Next up: **history and preferences** (0.6), **multipart uploads** (0.7) and **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
+Next up: **multipart uploads** (0.7) and **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
 
 ## Project layout
 

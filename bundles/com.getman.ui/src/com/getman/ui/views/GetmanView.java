@@ -14,6 +14,7 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.ControlContribution;
 import org.eclipse.jface.action.IMenuManager;
@@ -47,10 +48,14 @@ import org.eclipse.ui.dialogs.ListDialog;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.part.ViewPart;
 import org.osgi.framework.Bundle;
+
+import com.getman.ui.preferences.GetmanPreferences;
 import org.osgi.framework.FrameworkUtil;
 
 import com.getman.core.curl.CurlExporter;
 import com.getman.core.curl.CurlImporter;
+import com.getman.core.history.HistoryEntry;
+import com.getman.core.history.HistoryStore;
 import com.getman.core.http.HttpService;
 import com.getman.core.model.Environment;
 import com.getman.core.model.RequestCollection;
@@ -72,7 +77,14 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 	private static final String NEW_COLLECTION_CHOICE = "New collection…";
 	private static final String MANAGE_ENVIRONMENTS = "Manage Environments…";
 
-	private final HttpService http = new HttpService();
+	private static final String HISTORY_FILE = "history.json";
+
+	private final HttpService http = new HttpService(GetmanPreferences.httpSettings());
+	private final List<HistoryEntry> history = new ArrayList<>();
+	private final Runnable saveHistoryNow = this::saveHistory;
+	private HistoryStore historyStore;
+	private HistoryPanel historyPanel;
+	private final IPreferenceChangeListener preferenceListener = event -> preferenceChanged(event.getKey());
 	private final Runnable saveNow = this::save;
 	private final List<RequestCollection> collections = new ArrayList<>();
 	private final List<Environment> environments = new ArrayList<>();
@@ -91,9 +103,22 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		log = Platform.getLog(bundle);
 		Path stateFile = Platform.getStateLocation(bundle).append(STATE_FILE).toFile().toPath();
 		store = new StateStore(stateFile);
+		historyStore = new HistoryStore(Platform.getStateLocation(bundle).append(HISTORY_FILE).toFile().toPath());
+		history.addAll(historyStore.load());
+		GetmanPreferences.instanceNode().addPreferenceChangeListener(preferenceListener);
 
 		sash = new SashForm(parent, SWT.HORIZONTAL);
-		collectionsPanel = new CollectionsPanel(sash, collections, this);
+		CTabFolder side = new CTabFolder(sash, SWT.BORDER | SWT.FLAT);
+		CTabItem collectionsTab = new CTabItem(side, SWT.NONE);
+		collectionsTab.setText("Collections");
+		collectionsPanel = new CollectionsPanel(side, collections, this);
+		collectionsTab.setControl(collectionsPanel);
+		CTabItem historyTab = new CTabItem(side, SWT.NONE);
+		historyTab.setText("History");
+		historyPanel = new HistoryPanel(side, history, this::openFromHistory, this::scheduleHistorySave);
+		historyPanel.setHistoryOff(GetmanPreferences.historySize() == 0);
+		historyTab.setControl(historyPanel);
+		side.setSelection(collectionsTab);
 
 		tabs = new CTabFolder(sash, SWT.BORDER | SWT.CLOSE | SWT.FLAT);
 		tabs.setUnselectedCloseVisible(false);
@@ -128,6 +153,9 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		// Save while the tabs still exist: the Dispose event fires before child widgets are released,
 		// which is not guaranteed by the time ViewPart.dispose() runs.
 		tabs.addListener(SWT.Dispose, e -> {
+			GetmanPreferences.instanceNode().removePreferenceChangeListener(preferenceListener);
+			tabs.getDisplay().timerExec(-1, saveHistoryNow);
+			saveHistory();
 			tabs.getDisplay().timerExec(-1, saveNow);
 			save();
 		});
@@ -167,7 +195,67 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		return new RequestTab(tabs, model, http, () -> {
 			updateTabTitle(item);
 			scheduleSave();
-		}, result -> replaceWithCurl(item, result), () -> scopeFor((RequestModel) item.getData()));
+		}, result -> replaceWithCurl(item, result), () -> scopeFor((RequestModel) item.getData()), this::recordHistory);
+	}
+
+	// --- history -------------------------------------------------------------------------------
+
+	private void recordHistory(HistoryEntry entry) {
+		int max = GetmanPreferences.historySize();
+		if (max == 0 || historyPanel == null || historyPanel.isDisposed()) {
+			return;
+		}
+		HistoryStore.add(history, entry, max);
+		historyPanel.refresh();
+		scheduleHistorySave();
+	}
+
+	/** Opens a history entry as a new, unsaved tab (it keeps its {{variables}}). */
+	private void openFromHistory(HistoryEntry entry) {
+		RequestModel copy = entry.request().duplicate();
+		copy.setName(entry.request().getName());
+		addTab(copy, true);
+		scheduleSave();
+	}
+
+	/** Preference page changes apply to the next request; may be called off the UI thread. */
+	private void preferenceChanged(String key) {
+		http.setSettings(GetmanPreferences.httpSettings());
+		if (GetmanPreferences.HISTORY_SIZE.equals(key) && tabs != null && !tabs.isDisposed()) {
+			tabs.getDisplay().asyncExec(() -> {
+				if (!tabs.isDisposed()) {
+					applyHistorySize();
+				}
+			});
+		}
+	}
+
+	private void applyHistorySize() {
+		int max = GetmanPreferences.historySize();
+		while (history.size() > max) {
+			history.remove(history.size() - 1);
+		}
+		if (historyPanel != null && !historyPanel.isDisposed()) {
+			historyPanel.setHistoryOff(max == 0);
+		}
+		scheduleHistorySave();
+	}
+
+	private void scheduleHistorySave() {
+		if (tabs != null && !tabs.isDisposed()) {
+			tabs.getDisplay().timerExec(SAVE_DELAY_MS, saveHistoryNow);
+		}
+	}
+
+	private void saveHistory() {
+		if (historyStore == null) {
+			return;
+		}
+		try {
+			historyStore.save(history, GetmanPreferences.historySize());
+		} catch (IOException e) {
+			log.log(Status.error("Could not save GetMan history to " + historyStore.getFile(), e));
+		}
 	}
 
 	// --- environments --------------------------------------------------------------------------

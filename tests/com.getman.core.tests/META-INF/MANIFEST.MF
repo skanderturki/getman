@@ -8,4 +8,5 @@ Fragment-Host: com.getman.core
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.getman.core.tests
 Import-Package: org.junit.jupiter.api;version="[5.0.0,6.0.0)",
- org.junit.jupiter.api.function;version="[5.0.0,6.0.0)"
+ org.junit.jupiter.api.function;version="[5.0.0,6.0.0)",
+ javax.net.ssl

@@ -30,7 +30,9 @@ import org.eclipse.swt.widgets.Text;
 
 import com.getman.core.curl.CurlImporter;
 import com.getman.core.curl.CurlParseException;
+import com.getman.core.history.HistoryEntry;
 import com.getman.core.http.HttpService;
+import com.getman.core.http.UrlBuilder;
 import com.getman.core.json.Json;
 import com.getman.core.json.JsonException;
 import com.getman.core.model.AuthType;
@@ -52,6 +54,7 @@ class RequestTab extends Composite {
 	private final Consumer<CurlImporter.Result> onCurlPasted;
 	private final Supplier<VariableScope> scope;
 	private final Label variableHint;
+	private final Consumer<HistoryEntry> onSent;
 
 	private final Button sendButton;
 	private final CTabItem paramsTab;
@@ -66,7 +69,7 @@ class RequestTab extends Composite {
 	 *                     replaces this tab's request with the parsed one
 	 */
 	RequestTab(Composite parent, RequestModel model, HttpService http, Runnable onChangeListener,
-			Consumer<CurlImporter.Result> onCurlPasted, Supplier<VariableScope> scope) {
+			Consumer<CurlImporter.Result> onCurlPasted, Supplier<VariableScope> scope, Consumer<HistoryEntry> onSent) {
 		super(parent, SWT.NONE);
 		this.model = model;
 		this.http = http;
@@ -77,6 +80,7 @@ class RequestTab extends Composite {
 		};
 		this.onCurlPasted = onCurlPasted;
 		this.scope = scope;
+		this.onSent = onSent;
 		setLayout(new FillLayout());
 
 		SashForm sash = new SashForm(this, SWT.VERTICAL);
@@ -283,7 +287,12 @@ class RequestTab extends Composite {
 		}
 		responsePanel.showLoading();
 		sendButton.setText("Cancel");
-		CompletableFuture<ResponseModel> future = http.send(new VariableResolver(scope.get().values()).resolve(model));
+		// Remember the request as written (for history) and what was actually called.
+		RequestModel sentAs = model.copy();
+		RequestModel resolved = new VariableResolver(scope.get().values()).resolve(model);
+		String resolvedUrl = UrlBuilder.buildUrl(resolved);
+		long sentAt = System.currentTimeMillis();
+		CompletableFuture<ResponseModel> future = http.send(resolved);
 		inFlight = future;
 		future.whenComplete((response, error) -> {
 			if (isDisposed()) {
@@ -299,11 +308,12 @@ class RequestTab extends Composite {
 				}
 				if (error instanceof CancellationException) {
 					responsePanel.showCancelled();
-				} else if (error != null) {
-					responsePanel.showResponse(ResponseModel.failure(String.valueOf(error.getMessage()), 0));
-				} else {
-					responsePanel.showResponse(response);
+					return;
 				}
+				ResponseModel shown = error != null ? ResponseModel.failure(String.valueOf(error.getMessage()), 0)
+						: response;
+				responsePanel.showResponse(shown);
+				onSent.accept(HistoryEntry.of(sentAs, resolvedUrl, shown, sentAt));
 			});
 		});
 	}

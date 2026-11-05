@@ -100,18 +100,12 @@ class CollectionsPanel extends Composite {
 		layout.marginHeight = 0;
 		setLayout(layout);
 
-		Label title = new Label(this, SWT.NONE);
-		title.setText("Collections");
-		title.setFont(JFaceResources.getBannerFont());
-		GridData titleData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-		titleData.horizontalIndent = 4;
-		title.setLayoutData(titleData);
-
 		emptyHint = new Label(this, SWT.WRAP);
 		emptyHint.setText("No collections yet.\n\nPress Ctrl+S in a request tab to save it to a collection, "
 				+ "or right-click here to create one or import a GetMan or Postman file.");
 		GridData hintData = new GridData(SWT.FILL, SWT.TOP, true, false);
 		hintData.horizontalIndent = 4;
+		hintData.verticalIndent = 4;
 		hintData.widthHint = 150;
 		emptyHint.setLayoutData(hintData);
 

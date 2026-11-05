@@ -83,8 +83,9 @@ Production from a dropdown.
 ## 0.6.0: History and preferences
 
 **History**
-- Every sent request is recorded with its time, a resolved snapshot and the response summary (status, time,
-  size).
+- Every sent request is recorded with its time, the request as written (with its `{{variables}}`, so it can be
+  re-sent in any environment and no resolved secrets are copied), the URL actually called, and the response
+  summary (status, time, size).
 - The last 100 are kept, in a separate `history.json` so the main state file stays small.
 - A **History** tab next to Collections in the left panel, grouped by day.
   - Double-click opens the request in a new tab.

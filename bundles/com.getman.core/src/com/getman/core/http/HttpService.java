@@ -30,19 +30,34 @@ import com.getman.core.model.ResponseModel;
 public final class HttpService {
 	private static final Pattern CHARSET = Pattern.compile("(?i)charset=\"?([^\";\\s]+)");
 
-	private final HttpSettings settings;
-	private final HttpClient client;
+	/** Settings and the client built from them, swapped together so a request never mixes the two. */
+	private record Configured(HttpSettings settings, HttpClient client) {
+	}
+
+	private volatile Configured configured;
 
 	public HttpService() {
 		this(HttpSettings.DEFAULT);
 	}
 
 	public HttpService(HttpSettings settings) {
-		this.settings = settings;
-		this.client = HttpClient.newBuilder()
+		setSettings(settings);
+	}
+
+	public HttpSettings getSettings() {
+		return configured.settings();
+	}
+
+	/** Applies new settings to requests sent from now on; requests in flight finish with the old ones. */
+	public void setSettings(HttpSettings settings) {
+		HttpClient.Builder builder = HttpClient.newBuilder()
 				.connectTimeout(settings.connectTimeout())
-				.followRedirects(settings.followRedirects() ? HttpClient.Redirect.NORMAL : HttpClient.Redirect.NEVER)
-				.build();
+				.followRedirects(settings.followRedirects() ? HttpClient.Redirect.NORMAL : HttpClient.Redirect.NEVER);
+		javax.net.ssl.SSLContext ssl = TlsTrust.sslContext(settings.trustMode());
+		if (ssl != null) {
+			builder.sslContext(ssl);
+		}
+		configured = new Configured(settings, builder.build());
 	}
 
 	/**
@@ -51,13 +66,14 @@ public final class HttpService {
 	 */
 	public CompletableFuture<ResponseModel> send(RequestModel request) {
 		long start = System.nanoTime();
+		Configured c = configured;
 		HttpRequest httpRequest;
 		try {
-			httpRequest = toHttpRequest(request);
+			httpRequest = toHttpRequest(request, c.settings());
 		} catch (IllegalArgumentException e) {
 			return CompletableFuture.completedFuture(ResponseModel.failure(e.getMessage(), 0));
 		}
-		CompletableFuture<HttpResponse<byte[]>> exchange = client.sendAsync(httpRequest,
+		CompletableFuture<HttpResponse<byte[]>> exchange = c.client().sendAsync(httpRequest,
 				HttpResponse.BodyHandlers.ofByteArray());
 		CompletableFuture<ResponseModel> result = exchange
 				.thenApply(response -> toResponseModel(response, elapsedMs(start)))
@@ -72,6 +88,10 @@ public final class HttpService {
 	}
 
 	HttpRequest toHttpRequest(RequestModel request) {
+		return toHttpRequest(request, configured.settings());
+	}
+
+	private HttpRequest toHttpRequest(RequestModel request, HttpSettings settings) {
 		URI uri = UrlBuilder.buildUri(request);
 		HttpRequest.Builder builder = HttpRequest.newBuilder(uri).timeout(settings.requestTimeout());
 
@@ -153,7 +173,12 @@ public final class HttpService {
 			return "Unknown host: " + cause.getMessage();
 		}
 		if (cause instanceof javax.net.ssl.SSLException) {
-			return "TLS/SSL error: " + cause.getMessage();
+			String m = String.valueOf(cause.getMessage());
+			if (m.contains("PKIX") || m.contains("certificate") || m.contains("No subject alternative")) {
+				return "TLS certificate not trusted: " + m + System.lineSeparator()
+						+ "For a self-signed development server, change \"Certificates\" in Window › Preferences › GetMan.";
+			}
+			return "TLS/SSL error: " + m;
 		}
 		String message = cause.getMessage();
 		return cause.getClass().getSimpleName() + (message == null ? "" : ": " + message);

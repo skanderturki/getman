@@ -15,4 +15,14 @@
             restorable="true">
       </view>
    </extension>
+   <extension point="org.eclipse.ui.preferencePages">
+      <page
+            id="com.getman.ui.preferences"
+            name="GetMan"
+            class="com.getman.ui.preferences.GetmanPreferencePage">
+      </page>
+   </extension>
+   <extension point="org.eclipse.core.runtime.preferences">
+      <initializer class="com.getman.ui.preferences.PreferenceInitializer"/>
+   </extension>
 </plugin>

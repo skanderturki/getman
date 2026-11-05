@@ -7,9 +7,11 @@ Bundle-Vendor: Jahiz Digital Solutions (Jahiz.tn)
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.getman.core
 Export-Package: com.getman.core.curl,
+ com.getman.core.history,
  com.getman.core.http,
  com.getman.core.json,
  com.getman.core.model,
  com.getman.core.postman,
  com.getman.core.store,
  com.getman.core.variables
+Import-Package: javax.net.ssl
