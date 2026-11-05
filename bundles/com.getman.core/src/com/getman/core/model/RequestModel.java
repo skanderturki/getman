@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 /** An editable HTTP request, as shown in one editor tab and saved to disk. */
-public final class RequestModel {
+public final class RequestModel implements CollectionNode {
 	private String id = UUID.randomUUID().toString();
 	private String name = "New Request";
 	private HttpMethod method = HttpMethod.GET;

@@ -118,11 +118,11 @@ class AuthTest {
 		assertFalse(safe.contains("s3cret"));
 		assertFalse(safe.contains("tok-123"));
 		RequestCollection imported = CollectionFile.fromJson(safe);
-		assertEquals(AuthType.BASIC, imported.getRequests().get(0).getAuth().getType());
-		assertEquals("ada", imported.getRequests().get(0).getAuth().getUsername());
-		assertEquals("", imported.getRequests().get(0).getAuth().getPassword());
+		assertEquals(AuthType.BASIC, imported.allRequests().get(0).getAuth().getType());
+		assertEquals("ada", imported.allRequests().get(0).getAuth().getUsername());
+		assertEquals("", imported.allRequests().get(0).getAuth().getPassword());
 		// The live collection is untouched.
-		assertEquals("s3cret", c.getRequests().get(0).getAuth().getPassword());
+		assertEquals("s3cret", c.allRequests().get(0).getAuth().getPassword());
 
 		String full = CollectionFile.toJson(c, true);
 		assertTrue(full.contains("s3cret"));

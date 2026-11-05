@@ -45,15 +45,21 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
   rename it; right-click for Duplicate, Copy as cURL, Close, Close Others.
 - **Environments and `{{variables}}`** – define Local, Staging, Production… in **Manage Environments** and pick
   one from the dropdown in the GetMan toolbar. `{{name}}` works in the URL, params, headers, body and auth, and
-  values can use other variables. Unknown variables are flagged under the URL as you type; **Copy as cURL** copies
+  values can use other variables. Collections can have their own variables too; the environment wins when both
+  define a name. Unknown variables are flagged under the URL as you type; **Copy as cURL** copies
   the request with variables filled in.
 - **Auth helper** – an **Auth** section per request: *Bearer Token* or *Basic Auth* (username/password), sent as
   the `Authorization` header. A header you add yourself in **Headers** takes precedence. Secrets are masked
   (tick *Show* to reveal) and left out of collection exports unless you choose to include them.
-- **Collections** – a tree on the left of the view. `Ctrl+S` in a request tab saves it to a collection (you pick
-  the collection and name the first time; afterwards `Ctrl+S` just updates it). Tabs with unsaved changes show a
-  `*`. Double-click a saved request to open it; right-click for Rename (F2), Duplicate, Move Up/Down, Delete
-  (Del), Export… and Import… (shareable `.getman.json` files).
+- **Collections and folders** – a tree on the left of the view. `Ctrl+S` in a request tab saves it to a collection
+  (you pick the collection and name the first time; afterwards `Ctrl+S` just updates it). Tabs with unsaved
+  changes show a `*`. Organise requests in nested folders and **drag and drop** them to reorder or move them
+  between folders and collections (or use *Move To…*). Right-click for New Request, New Folder, Rename (F2),
+  Duplicate, Delete (Del), Export… and collection **Variables…**.
+- **Import from Postman** – right-click › *Import (GetMan or Postman)…* reads Postman Collection v2.0/v2.1 files
+  (folders, headers, bodies, Bearer/Basic/API-key auth including inherited auth, collection variables) and
+  Postman environment files. Anything that can't be converted (scripts, OAuth, file uploads) is listed after the
+  import.
 - **Saved automatically** – collections and open tabs are stored as JSON in the plugin's state folder
   (`<workspace>/.metadata/.plugins/com.getman.ui/state.json`) and restored when Eclipse restarts.
 - **Full response details** – status (colour-coded), time, size, HTTP version, all response headers, and the
@@ -68,7 +74,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Roadmap
 
-Next up: **folders and Postman import** (0.5), **history and preferences** (0.6), **multipart uploads** (0.7) and **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
+Next up: **history and preferences** (0.6), **multipart uploads** (0.7) and **secure storage for secrets** (0.8). See [docs/ROADMAP.md](docs/ROADMAP.md) for the plan.
 
 ## Project layout
 

@@ -3,7 +3,10 @@ package com.getman.ui.views;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -164,7 +167,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		return new RequestTab(tabs, model, http, () -> {
 			updateTabTitle(item);
 			scheduleSave();
-		}, result -> replaceWithCurl(item, result), this::currentScope);
+		}, result -> replaceWithCurl(item, result), () -> scopeFor((RequestModel) item.getData()));
 	}
 
 	// --- environments --------------------------------------------------------------------------
@@ -179,19 +182,33 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 	}
 
 	/** Variables requests are resolved against right now. */
-	private VariableScope currentScope() {
+	private VariableScope scopeFor(RequestModel model) {
 		Environment env = activeEnvironment();
-		return env == null ? VariableScope.NONE : new VariableScope(env.getName(), env.activeValues());
+		RequestCollection collection = findCollection(model.getCollectionId());
+		Map<String, String> values = new LinkedHashMap<>();
+		String collectionName = "";
+		if (collection != null && !collection.getVariables().isEmpty()) {
+			values.putAll(collection.activeVariables());
+			collectionName = collection.getName();
+		}
+		if (env != null) {
+			values.putAll(env.activeValues()); // the environment overrides collection variables
+		}
+		return new VariableScope(env == null ? "" : env.getName(), collectionName, values);
 	}
 
-	private void selectEnvironment(String id) {
-		activeEnvironmentId = id == null ? "" : id;
-		refreshEnvironmentCombo();
+	private void refreshAllVariableHints() {
 		for (CTabItem item : tabs.getItems()) {
 			if (item.getControl() instanceof RequestTab tab) {
 				tab.refreshVariableHint();
 			}
 		}
+	}
+
+	private void selectEnvironment(String id) {
+		activeEnvironmentId = id == null ? "" : id;
+		refreshEnvironmentCombo();
+		refreshAllVariableHints();
 		scheduleSave();
 	}
 
@@ -441,7 +458,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 
 		IMenuManager viewMenu = getViewSite().getActionBars().getMenuManager();
 		viewMenu.add(action("New Collection…", images, ISharedImages.IMG_OBJ_FOLDER, collectionsPanel::newCollection));
-		viewMenu.add(action("Import Collection…", images, null, collectionsPanel::importCollection));
+		viewMenu.add(action("Import (GetMan or Postman)…", images, null, collectionsPanel::importFile));
 		viewMenu.add(new Separator());
 		viewMenu.add(action("Manage Environments…", images, null, this::manageEnvironments));
 		viewMenu.add(new Separator());
@@ -486,7 +503,8 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 
 	private void copyAsCurl(CTabItem item) {
 		// Copy what would be sent: variables filled in from the active environment.
-		RequestModel resolved = new VariableResolver(currentScope().values()).resolve((RequestModel) item.getData());
+		RequestModel model = (RequestModel) item.getData();
+		RequestModel resolved = new VariableResolver(scopeFor(model).values()).resolve(model);
 		String curl = CurlExporter.toCurl(resolved);
 		Clipboard clipboard = new Clipboard(tabs.getDisplay());
 		try {
@@ -591,18 +609,35 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 	@Override
 	public void collectionsChanged() {
 		updateAllTabTitles();
+		refreshAllVariableHints(); // collection variables may have changed
 		scheduleSave();
 	}
 
 	@Override
-	public void unlink(String collectionId, String requestIdOrNull) {
+	public void unlink(String collectionId, Set<String> requestIdsOrNull) {
 		for (CTabItem item : tabs.getItems()) {
 			RequestModel model = (RequestModel) item.getData();
 			if (collectionId.equals(model.getCollectionId())
-					&& (requestIdOrNull == null || requestIdOrNull.equals(model.getId()))) {
+					&& (requestIdsOrNull == null || requestIdsOrNull.contains(model.getId()))) {
 				model.setCollectionId("");
 			}
 		}
+	}
+
+	@Override
+	public void relink(Set<String> requestIds, String newCollectionId) {
+		for (CTabItem item : tabs.getItems()) {
+			RequestModel model = (RequestModel) item.getData();
+			if (model.isInCollection() && requestIds.contains(model.getId())) {
+				model.setCollectionId(newCollectionId);
+			}
+		}
+	}
+
+	@Override
+	public void importEnvironment(Environment environment) {
+		environments.add(environment);
+		selectEnvironment(environment.getId());
 	}
 
 	@Override

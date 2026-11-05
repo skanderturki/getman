@@ -257,9 +257,10 @@ class RequestTab extends Composite {
 		String text = "";
 		if (!unknown.isEmpty()) {
 			String names = unknown.stream().map(n -> "{{" + n + "}}").collect(Collectors.joining(", "));
+			String sources = s.describeSources();
 			text = (unknown.size() == 1 ? "Unknown variable " : "Unknown variables ") + names
-					+ (s.environmentName().isEmpty() ? ": no environment is selected in the GetMan toolbar."
-							: ": not defined in environment \"" + s.environmentName() + "\".");
+					+ (sources == null ? ": no environment is selected in the GetMan toolbar."
+							: ": not defined in " + sources + ".");
 		}
 		boolean show = !text.isEmpty();
 		if (show == variableHint.getVisible() && text.equals(variableHint.getText())) {

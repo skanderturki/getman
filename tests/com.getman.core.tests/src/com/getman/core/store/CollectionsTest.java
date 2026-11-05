@@ -37,15 +37,15 @@ class CollectionsTest {
 		RequestModel saved = c.put(tab);
 		assertNotSame(tab, saved);
 		assertEquals(c.getId(), saved.getCollectionId());
-		assertEquals(1, c.getRequests().size());
+		assertEquals(1, c.allRequests().size());
 
 		tab.setUrl("https://api.example.com/v2/users");
 		c.put(tab);
-		assertEquals(1, c.getRequests().size());
+		assertEquals(1, c.allRequests().size());
 		assertEquals("https://api.example.com/v2/users", c.findRequest(tab.getId()).getUrl());
 
 		assertTrue(c.removeRequest(tab.getId()));
-		assertTrue(c.getRequests().isEmpty());
+		assertTrue(c.allRequests().isEmpty());
 	}
 
 	@Test
@@ -85,8 +85,8 @@ class CollectionsTest {
 		assertEquals(1, loaded.getCollections().size());
 		RequestCollection lc = loaded.findCollection(c.getId());
 		assertEquals("Users API", lc.getName());
-		assertEquals(1, lc.getRequests().size());
-		RequestModel lr = lc.getRequests().get(0);
+		assertEquals(1, lc.allRequests().size());
+		RequestModel lr = lc.allRequests().get(0);
 		assertTrue(lr.sameContent(saved));
 		assertEquals(c.getId(), lr.getCollectionId());
 		RequestModel tab = loaded.getOpenTabs().get(0);
@@ -110,9 +110,9 @@ class CollectionsTest {
 
 		assertEquals("Users API", imported.getName());
 		assertNotEquals(c.getId(), imported.getId());
-		RequestModel r = imported.getRequests().get(0);
-		assertTrue(r.sameContent(c.getRequests().get(0)));
-		assertNotEquals(c.getRequests().get(0).getId(), r.getId());
+		RequestModel r = imported.allRequests().get(0);
+		assertTrue(r.sameContent(c.allRequests().get(0)));
+		assertNotEquals(c.allRequests().get(0).getId(), r.getId());
 		assertEquals(imported.getId(), r.getCollectionId());
 	}
 

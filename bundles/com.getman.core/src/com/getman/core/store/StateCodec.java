@@ -10,6 +10,8 @@ import com.getman.core.json.JsonException;
 import com.getman.core.model.Auth;
 import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
+import com.getman.core.model.CollectionNode;
+import com.getman.core.model.Folder;
 import com.getman.core.model.Environment;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
@@ -18,7 +20,8 @@ import com.getman.core.model.RequestModel;
 
 /** Converts {@link WorkspaceState} to and from JSON. Unknown fields are ignored so older versions can read newer files. */
 public final class StateCodec {
-	static final int FORMAT_VERSION = 1;
+	/** 2: collections are trees ("items") and have variables. Version-1 files (flat "requests") still load. */
+	static final int FORMAT_VERSION = 2;
 
 	private StateCodec() {
 	}
@@ -87,28 +90,72 @@ public final class StateCodec {
 		Map<String, Object> m = new LinkedHashMap<>();
 		m.put("id", c.getId());
 		m.put("name", c.getName());
-		List<Object> requests = new ArrayList<>();
-		for (RequestModel r : c.getRequests()) {
-			Map<String, Object> rm = requestToMap(r);
-			rm.remove("collectionId"); // implied by nesting
-			requests.add(rm);
+		m.put("variables", kvToList(c.getVariables()));
+		m.put("items", itemsToList(c.getItems()));
+		// Flat copy for GetMan 0.4 and older, which only read "requests": downgrading keeps every request
+		// (without folders) instead of showing an empty collection. Ignored when "items" is present.
+		List<Object> flat = new ArrayList<>();
+		for (RequestModel r : c.allRequests()) {
+			flat.add(savedRequestToMap(r));
 		}
-		m.put("requests", requests);
+		m.put("requests", flat);
 		return m;
+	}
+
+	private static List<Object> itemsToList(List<CollectionNode> items) {
+		List<Object> out = new ArrayList<>();
+		for (CollectionNode node : items) {
+			if (node instanceof Folder f) {
+				Map<String, Object> fm = new LinkedHashMap<>();
+				fm.put("type", "folder");
+				fm.put("id", f.getId());
+				fm.put("name", f.getName());
+				fm.put("items", itemsToList(f.getItems()));
+				out.add(fm);
+			} else if (node instanceof RequestModel r) {
+				out.add(savedRequestToMap(r));
+			}
+		}
+		return out;
+	}
+
+	private static Map<String, Object> savedRequestToMap(RequestModel r) {
+		Map<String, Object> rm = requestToMap(r);
+		rm.remove("collectionId"); // implied by nesting
+		return rm;
 	}
 
 	public static RequestCollection collectionFromMap(Map<?, ?> m) {
 		RequestCollection c = new RequestCollection();
 		c.setId(string(m.get("id")));
 		c.setName(string(m.get("name")));
-		for (Object o : list(m.get("requests"))) {
-			if (o instanceof Map<?, ?> rm) {
-				RequestModel r = requestFromMap(rm);
-				r.setCollectionId(c.getId());
-				c.getRequests().add(r);
-			}
+		c.getVariables().addAll(kvFromList(m.get("variables")));
+		Object items = m.get("items");
+		if (items instanceof List<?>) {
+			itemsFromList(items, c.getItems(), c.getId());
+		} else {
+			itemsFromList(m.get("requests"), c.getItems(), c.getId()); // format version 1
 		}
 		return c;
+	}
+
+	private static void itemsFromList(Object value, List<CollectionNode> into, String collectionId) {
+		for (Object o : list(value)) {
+			if (!(o instanceof Map<?, ?> nm)) {
+				continue;
+			}
+			if ("folder".equals(nm.get("type"))) {
+				Folder f = new Folder();
+				f.setId(string(nm.get("id")));
+				f.setName(string(nm.get("name")));
+				itemsFromList(nm.get("items"), f.getItems(), collectionId);
+				into.add(f);
+			} else {
+				RequestModel r = requestFromMap(nm);
+				r.setCollectionId(collectionId);
+				into.add(r);
+			}
+		}
 	}
 
 	public static Map<String, Object> requestToMap(RequestModel r) {
@@ -157,7 +204,7 @@ public final class StateCodec {
 		return r;
 	}
 
-	private static List<Object> kvToList(List<KeyValue> rows) {
+	static List<Object> kvToList(List<KeyValue> rows) {
 		List<Object> out = new ArrayList<>();
 		for (KeyValue kv : rows) {
 			Map<String, Object> m = new LinkedHashMap<>();
@@ -169,7 +216,7 @@ public final class StateCodec {
 		return out;
 	}
 
-	private static List<KeyValue> kvFromList(Object value) {
+	static List<KeyValue> kvFromList(Object value) {
 		List<KeyValue> out = new ArrayList<>();
 		for (Object o : list(value)) {
 			if (o instanceof Map<?, ?> m) {

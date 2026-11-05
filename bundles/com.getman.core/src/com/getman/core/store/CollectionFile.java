@@ -10,13 +10,17 @@ import java.util.UUID;
 
 import com.getman.core.json.Json;
 import com.getman.core.json.JsonException;
+import com.getman.core.model.CollectionNode;
+import com.getman.core.model.Folder;
+import com.getman.core.model.NodeContainer;
 import com.getman.core.model.RequestCollection;
 import com.getman.core.model.RequestModel;
 
 /** Exports a collection to a standalone JSON file and imports it back, e.g. to share it or commit it to git. */
 public final class CollectionFile {
 	static final String FORMAT_KEY = "getmanCollection";
-	static final int FORMAT_VERSION = 1;
+	/** 2: folders ("items") and collection variables. Version-1 files (flat "requests") still import. */
+	static final int FORMAT_VERSION = 2;
 
 	private CollectionFile() {
 	}
@@ -31,20 +35,16 @@ public final class CollectionFile {
 	 *                       username are kept so the recipient only has to fill in the secret
 	 */
 	public static String toJson(RequestCollection collection, boolean includeSecrets) {
-		RequestCollection exported = collection;
-		if (!includeSecrets) {
-			exported = new RequestCollection(collection.getName());
-			exported.setId(collection.getId());
-			for (RequestModel r : collection.getRequests()) {
-				RequestModel c = r.copy();
-				c.getAuth().clearSecrets();
-				exported.getRequests().add(c);
-			}
-		}
 		Map<String, Object> root = new LinkedHashMap<>();
 		root.put(FORMAT_KEY, FORMAT_VERSION);
+		// Round-trip through the codec to get an independent copy, then strip secrets from the copy.
+		RequestCollection exported = StateCodec.collectionFromMap(StateCodec.collectionToMap(collection));
+		if (!includeSecrets) {
+			exported.allRequests().forEach(r -> r.getAuth().clearSecrets());
+		}
 		root.putAll(StateCodec.collectionToMap(exported));
 		root.remove("id");
+		root.remove("requests"); // export files always carry the tree
 		return Json.writePretty(root);
 	}
 
@@ -55,11 +55,7 @@ public final class CollectionFile {
 			throw new JsonException("Not a GetMan collection file");
 		}
 		RequestCollection c = StateCodec.collectionFromMap(root);
-		c.setId(UUID.randomUUID().toString());
-		for (RequestModel r : c.getRequests()) {
-			r.setId(UUID.randomUUID().toString());
-			r.setCollectionId(c.getId());
-		}
+		freshIds(c);
 		return c;
 	}
 
@@ -69,7 +65,25 @@ public final class CollectionFile {
 
 	/** Whether any request in the collection stores a token or password. */
 	public static boolean hasSecrets(RequestCollection collection) {
-		return collection.getRequests().stream().anyMatch(r -> r.getAuth().hasSecrets());
+		return collection.allRequests().stream().anyMatch(r -> r.getAuth().hasSecrets());
+	}
+
+	/** New ids for the collection, its folders and requests, so an imported copy never clashes with the original. */
+	public static void freshIds(RequestCollection c) {
+		c.setId(UUID.randomUUID().toString());
+		freshIds(c, c.getId());
+	}
+
+	private static void freshIds(NodeContainer container, String collectionId) {
+		for (CollectionNode node : container.getItems()) {
+			if (node instanceof Folder f) {
+				f.setId(UUID.randomUUID().toString());
+				freshIds(f, collectionId);
+			} else if (node instanceof RequestModel r) {
+				r.setId(UUID.randomUUID().toString());
+				r.setCollectionId(collectionId);
+			}
+		}
 	}
 
 	public static RequestCollection read(Path file) throws IOException {
