@@ -221,6 +221,9 @@ class HistoryPanel extends Composite {
 				s.append(outcome, statusStyler(e));
 				s.append("  " + e.durationMs() + " ms · " + TIME.format(Instant.ofEpochMilli(e.sentAtMillis())
 						.atZone(ZoneId.systemDefault())), StyledString.QUALIFIER_STYLER);
+				if (e.viaAssistant()) {
+					s.append(" · AI assistant", StyledString.QUALIFIER_STYLER);
+				}
 				return s;
 			}
 			return new StyledString(String.valueOf(element));

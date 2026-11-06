@@ -103,6 +103,9 @@ public final class HistoryStore {
 			m.put("error", e.error());
 			m.put("durationMs", e.durationMs());
 			m.put("sizeBytes", e.sizeBytes());
+			if (e.viaAssistant()) {
+				m.put("via", "assistant");
+			}
 			m.put("request", StateCodec.requestToMap(e.request(), secrets, "hist:" + e.id()));
 			list.add(m);
 		}
@@ -126,7 +129,7 @@ public final class HistoryStore {
 				RequestModel request = StateCodec.requestFromMap(rm, secrets);
 				out.add(new HistoryEntry(str(m.get("id")), num(m.get("sentAt")), request, str(m.get("resolvedUrl")),
 						(int) num(m.get("status")), str(m.get("statusLine")), str(m.get("error")),
-						num(m.get("durationMs")), num(m.get("sizeBytes"))));
+						num(m.get("durationMs")), num(m.get("sizeBytes")), "assistant".equals(m.get("via"))));
 			}
 		}
 		return out;

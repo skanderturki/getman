@@ -23,6 +23,7 @@
     <module>bundles/com.getman.doc</module>
     <module>bundles/com.getman.mcp</module>
     <module>tests/com.getman.core.tests</module>
+    <module>tests/com.getman.mcp.tests</module>
     <module>features/com.getman.feature</module>
     <module>features/com.getman.mcp.feature</module>
     <module>releng/com.getman.site</module>

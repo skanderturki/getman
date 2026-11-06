@@ -61,6 +61,9 @@ public final class StateCodec {
 			Map<String, Object> em = new LinkedHashMap<>();
 			em.put("id", e.getId());
 			em.put("name", e.getName());
+			if (e.isProduction()) {
+				em.put("production", true);
+			}
 			em.put("variables", kvToList(e.getVariables(), secrets, "env:" + e.getId()));
 			environments.add(em);
 		}
@@ -94,6 +97,7 @@ public final class StateCodec {
 				Environment e = new Environment();
 				e.setId(string(em.get("id")));
 				e.setName(string(em.get("name")));
+				e.setProduction(em.get("production") instanceof Boolean b && b);
 				e.getVariables().addAll(kvFromList(em.get("variables"), secrets));
 				state.getEnvironments().add(e);
 			}
@@ -235,6 +239,9 @@ public final class StateCodec {
 		if (r.isInCollection()) {
 			m.put("collectionId", r.getCollectionId());
 		}
+		if (r.isCreatedByAssistant()) {
+			m.put("createdBy", "assistant");
+		}
 		return m;
 	}
 
@@ -260,6 +267,7 @@ public final class StateCodec {
 		}
 		r.setBinaryFile(string(m.get("binaryFile")));
 		r.setCollectionId(string(m.get("collectionId")));
+		r.setCreatedByAssistant("assistant".equals(m.get("createdBy")));
 		if (m.get("auth") instanceof Map<?, ?> am) {
 			Auth auth = r.getAuth();
 			auth.setType(AuthType.parse(string(am.get("type"))));

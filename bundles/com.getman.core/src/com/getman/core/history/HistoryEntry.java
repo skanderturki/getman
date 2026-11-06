@@ -8,9 +8,10 @@ import com.getman.core.model.ResponseModel;
 /**
  * One sent request: the request as written (with its {{variables}}, so it can be re-sent in any environment),
  * the URL that was actually called, and a summary of the response. Response bodies are not kept.
+ * {@code viaAssistant} marks requests an AI assistant sent through the MCP server.
  */
 public record HistoryEntry(String id, long sentAtMillis, RequestModel request, String resolvedUrl, int statusCode,
-		String statusLine, String error, long durationMs, long sizeBytes) {
+		String statusLine, String error, long durationMs, long sizeBytes, boolean viaAssistant) {
 
 	public HistoryEntry {
 		id = id == null || id.isBlank() ? UUID.randomUUID().toString() : id;
@@ -21,14 +22,19 @@ public record HistoryEntry(String id, long sentAtMillis, RequestModel request, S
 
 	/** Records {@code request} (copied) and the outcome. */
 	public static HistoryEntry of(RequestModel request, String resolvedUrl, ResponseModel response, long sentAtMillis) {
+		return of(request, resolvedUrl, response, sentAtMillis, false);
+	}
+
+	public static HistoryEntry of(RequestModel request, String resolvedUrl, ResponseModel response, long sentAtMillis,
+			boolean viaAssistant) {
 		RequestModel snapshot = request.copy();
 		snapshot.setCollectionId(""); // history entries are not linked to collections
 		if (response.isError()) {
 			return new HistoryEntry(null, sentAtMillis, snapshot, resolvedUrl, 0, "", response.getError(),
-					response.getDurationMs(), 0);
+					response.getDurationMs(), 0, viaAssistant);
 		}
 		return new HistoryEntry(null, sentAtMillis, snapshot, resolvedUrl, response.getStatusCode(),
-				response.getStatusLine(), "", response.getDurationMs(), response.getSizeBytes());
+				response.getStatusLine(), "", response.getDurationMs(), response.getSizeBytes(), viaAssistant);
 	}
 
 	public boolean isError() {

@@ -50,6 +50,8 @@ import org.eclipse.ui.part.ViewPart;
 import org.osgi.framework.Bundle;
 
 import com.getman.ui.EclipseSecretStore;
+import com.getman.ui.api.GetmanWorkspace;
+import com.getman.ui.api.GetmanWorkspaces;
 import com.getman.ui.preferences.GetmanPreferences;
 import org.osgi.framework.FrameworkUtil;
 
@@ -58,6 +60,7 @@ import com.getman.core.curl.CurlImporter;
 import com.getman.core.history.HistoryEntry;
 import com.getman.core.history.HistoryStore;
 import com.getman.core.http.HttpService;
+import com.getman.core.model.CollectionNode;
 import com.getman.core.model.Environment;
 import com.getman.core.model.RequestCollection;
 import com.getman.core.model.RequestModel;
@@ -70,8 +73,8 @@ import com.getman.core.variables.VariableResolver;
  * saved to the plugin's state folder shortly after every edit and when the view closes, and restored the next
  * time Eclipse starts.
  */
-public class GetmanView extends ViewPart implements CollectionsPanel.Host {
-	public static final String ID = "com.getman.ui.views.GetmanView";
+public class GetmanView extends ViewPart implements CollectionsPanel.Host, GetmanWorkspace {
+	public static final String ID = GetmanWorkspaces.VIEW_ID;
 
 	private static final int SAVE_DELAY_MS = 800;
 	private static final String STATE_FILE = "state.json";
@@ -159,6 +162,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		// Save while the tabs still exist: the Dispose event fires before child widgets are released,
 		// which is not guaranteed by the time ViewPart.dispose() runs.
 		tabs.addListener(SWT.Dispose, e -> {
+			GetmanWorkspaces.unregister(this);
 			GetmanPreferences.instanceNode().removePreferenceChangeListener(preferenceListener);
 			tabs.getDisplay().timerExec(-1, saveHistoryNow);
 			saveHistory();
@@ -172,6 +176,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 		activateSaveHandlers();
 
 		restore();
+		GetmanWorkspaces.register(this);
 	}
 
 	@Override
@@ -206,7 +211,8 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 
 	// --- history -------------------------------------------------------------------------------
 
-	private void recordHistory(HistoryEntry entry) {
+	@Override
+	public void recordHistory(HistoryEntry entry) {
 		int max = GetmanPreferences.historySize();
 		if (max == 0 || historyPanel == null || historyPanel.isDisposed()) {
 			return;
@@ -266,7 +272,8 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 
 	// --- environments --------------------------------------------------------------------------
 
-	private Environment activeEnvironment() {
+	@Override
+	public Environment activeEnvironment() {
 		for (Environment e : environments) {
 			if (e.getId().equals(activeEnvironmentId)) {
 				return e;
@@ -659,8 +666,10 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 			}
 			model.setName(nameDialog.getValue().trim());
 			if (model.isInCollection()) {
-				// Save As: leave the original saved request untouched and make this tab a new one.
+				// Save As: leave the original saved request untouched and make this tab a new one, owned by the
+				// user even when the original was created by an AI assistant.
 				model.setId(UUID.randomUUID().toString());
+				model.setCreatedByAssistant(false);
 			}
 		}
 		RequestModel saved = target.put(model);
@@ -756,6 +765,39 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host {
 	@Override
 	public void showStatus(String message) {
 		getViewSite().getActionBars().getStatusLineManager().setMessage(message);
+	}
+
+	// --- GetmanWorkspace (used by the optional MCP server) -------------------------------------
+
+	@Override
+	public List<RequestCollection> collections() {
+		return collections;
+	}
+
+	@Override
+	public List<Environment> environments() {
+		return environments;
+	}
+
+	@Override
+	public HttpService http() {
+		return http;
+	}
+
+	@Override
+	public void collectionsChanged(RequestCollection collection, CollectionNode reveal) {
+		if (collection != null) {
+			collectionsPanel.reveal(collection, reveal);
+		} else {
+			collectionsPanel.refresh();
+		}
+		collectionsChanged();
+	}
+
+	@Override
+	public void requestsDeleted(String collectionId, Set<String> requestIds) {
+		unlink(collectionId, requestIds);
+		updateAllTabTitles();
 	}
 
 	// --- persistence -------------------------------------------------------------------------

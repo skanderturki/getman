@@ -114,4 +114,17 @@ class HistoryStoreTest {
 		Files.writeString(store.getFile(), "{ broken");
 		assertTrue(store.load().isEmpty());
 	}
+
+	@Test
+	void roundTripsAssistantMarker() throws IOException {
+		RequestModel r = new RequestModel();
+		ResponseModel ok = ResponseModel.success(200, "HTTP/1.1", List.of(), "", 0, 5, "http://x");
+		List<HistoryEntry> entries = new ArrayList<>();
+		HistoryStore.add(entries, HistoryEntry.of(r, "http://x", ok, 1, true), 10);
+		HistoryStore.add(entries, HistoryEntry.of(r, "http://x", ok, 2), 10);
+		store.save(entries, 10);
+		List<HistoryEntry> loaded = store.load();
+		assertFalse(loaded.get(0).viaAssistant());
+		assertTrue(loaded.get(1).viaAssistant());
+	}
 }

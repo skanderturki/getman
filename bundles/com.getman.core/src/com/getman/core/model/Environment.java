@@ -11,6 +11,7 @@ public final class Environment {
 	private String id = UUID.randomUUID().toString();
 	private String name = "New Environment";
 	private final List<KeyValue> variables = new ArrayList<>();
+	private boolean production;
 
 	public Environment() {
 	}
@@ -35,6 +36,18 @@ public final class Environment {
 		this.name = name == null ? "" : name;
 	}
 
+	/**
+	 * Marked as a production environment: an AI assistant connected through the MCP server must get the user's
+	 * approval before sending anything other than GET, HEAD or OPTIONS in it.
+	 */
+	public boolean isProduction() {
+		return production;
+	}
+
+	public void setProduction(boolean production) {
+		this.production = production;
+	}
+
 	/** Live, mutable list of variables in display order. */
 	public List<KeyValue> getVariables() {
 		return variables;
@@ -55,6 +68,7 @@ public final class Environment {
 	public Environment copy() {
 		Environment c = new Environment(name);
 		c.id = id;
+		c.production = production;
 		variables.forEach(v -> c.variables.add(v.copy()));
 		return c;
 	}

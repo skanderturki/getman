@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
-   <!-- Spike only: a headless application that runs the MCP server, to test it without the IDE UI. -->
-   <extension id="spikeServer" point="org.eclipse.core.runtime.applications">
-      <application cardinality="singleton-global" thread="any" visible="true">
-         <run class="com.getman.mcp.SpikeApplication"/>
-      </application>
+   <extension point="org.eclipse.ui.preferencePages">
+      <page
+            id="com.getman.mcp.preferences"
+            category="com.getman.ui.preferences"
+            name="MCP Server"
+            class="com.getman.mcp.ui.McpPreferencePage">
+      </page>
+   </extension>
+   <extension point="org.eclipse.ui.startup">
+      <startup class="com.getman.mcp.ui.McpStartup"/>
    </extension>
 </plugin>

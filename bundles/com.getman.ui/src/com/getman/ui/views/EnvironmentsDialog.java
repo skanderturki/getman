@@ -33,6 +33,7 @@ class EnvironmentsDialog extends Dialog {
 	private org.eclipse.swt.widgets.List list;
 	private Composite tableHolder;
 	private Label tableTitle;
+	private Button productionCheck;
 	private Button duplicateButton;
 	private Button renameButton;
 	private Button deleteButton;
@@ -97,6 +98,16 @@ class EnvironmentsDialog extends Dialog {
 		right.setLayout(new GridLayout(1, false));
 		tableTitle = new Label(right, SWT.NONE);
 		tableTitle.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+		productionCheck = new Button(right, SWT.CHECK);
+		productionCheck.setText("Production: an AI assistant (MCP server) must ask before sending anything but "
+				+ "GET, HEAD or OPTIONS here");
+		productionCheck.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+		productionCheck.addListener(SWT.Selection, e -> {
+			Environment env = selected();
+			if (env != null) {
+				env.setProduction(productionCheck.getSelection());
+			}
+		});
 		tableHolder = new Composite(right, SWT.NONE);
 		tableHolder.setLayout(new FillLayout());
 		tableHolder.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -157,6 +168,8 @@ class EnvironmentsDialog extends Dialog {
 		duplicateButton.setEnabled(has);
 		renameButton.setEnabled(has);
 		deleteButton.setEnabled(has);
+		productionCheck.setEnabled(has);
+		productionCheck.setSelection(has && env.isProduction());
 		if (has) {
 			tableTitle.setText("Variables of \"" + env.getName() + "\"");
 			new KeyValueTable(tableHolder, env.getVariables(), "Variable", () -> {

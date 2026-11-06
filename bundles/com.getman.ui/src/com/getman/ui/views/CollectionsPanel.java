@@ -709,8 +709,9 @@ class CollectionsPanel extends Composite {
 						StyledString.COUNTER_STYLER);
 			}
 			if (element instanceof RequestModel r) {
-				return new StyledString(r.getMethod().name() + "  ", StyledString.DECORATIONS_STYLER)
+				StyledString s = new StyledString(r.getMethod().name() + "  ", StyledString.DECORATIONS_STYLER)
 						.append(r.getName().isBlank() ? "Untitled" : r.getName());
+				return r.isCreatedByAssistant() ? s.append("  AI", StyledString.QUALIFIER_STYLER) : s;
 			}
 			return new StyledString(String.valueOf(element));
 		}

@@ -17,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.getman.core.model.BodyType;
+import com.getman.core.model.Environment;
+import com.getman.core.model.RequestCollection;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestModel;
@@ -104,5 +106,46 @@ class StateStoreTest {
 		assertEquals(HttpMethod.GET, r.getMethod());
 		assertEquals(BodyType.NONE, r.getBodyType());
 		assertFalse(r.getId().isBlank());
+	}
+
+	@Test
+	void roundTripsProductionFlagAndAssistantMarker() throws IOException {
+		WorkspaceState state = new WorkspaceState();
+		Environment prod = new Environment("Production");
+		prod.setProduction(true);
+		state.getEnvironments().add(prod);
+		state.getEnvironments().add(new Environment("Local"));
+		RequestCollection c = new RequestCollection("orders-api (Claude)");
+		RequestModel byAssistant = new RequestModel();
+		byAssistant.setCreatedByAssistant(true);
+		c.put(byAssistant);
+		c.put(new RequestModel());
+		state.getCollections().add(c);
+		store.save(state);
+
+		WorkspaceState loaded = store.load().state();
+		assertTrue(loaded.getEnvironments().get(0).isProduction());
+		assertFalse(loaded.getEnvironments().get(1).isProduction());
+		RequestCollection lc = loaded.getCollections().get(0);
+		assertTrue(lc.findRequest(byAssistant.getId()).isCreatedByAssistant());
+		assertFalse(lc.allRequests().get(1).isCreatedByAssistant());
+	}
+
+	@Test
+	void copyKeepsAssistantMarkerButDuplicateDropsIt() {
+		RequestModel r = new RequestModel();
+		r.setCreatedByAssistant(true);
+		assertTrue(r.copy().isCreatedByAssistant());
+		assertFalse(r.duplicate().isCreatedByAssistant());
+		assertTrue(r.sameContent(withoutMarker(r)), "the marker is not user content");
+		Environment e = new Environment("Production");
+		e.setProduction(true);
+		assertTrue(e.copy().isProduction());
+	}
+
+	private static RequestModel withoutMarker(RequestModel r) {
+		RequestModel copy = r.copy();
+		copy.setCreatedByAssistant(false);
+		return copy;
 	}
 }

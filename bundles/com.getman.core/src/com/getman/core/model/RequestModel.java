@@ -19,6 +19,8 @@ public final class RequestModel implements CollectionNode {
 	private String binaryFile = "";
 	/** Id of the collection this request was opened from or saved to; empty when it is in none. */
 	private String collectionId = "";
+	/** Created by an AI assistant through the MCP server, which may only change or delete such requests. */
+	private boolean createdByAssistant;
 
 	public String getId() {
 		return id;
@@ -90,6 +92,14 @@ public final class RequestModel implements CollectionNode {
 		return !collectionId.isEmpty();
 	}
 
+	public boolean isCreatedByAssistant() {
+		return createdByAssistant;
+	}
+
+	public void setCreatedByAssistant(boolean createdByAssistant) {
+		this.createdByAssistant = createdByAssistant;
+	}
+
 	/** Live, mutable authorization settings. */
 	public Auth getAuth() {
 		return auth;
@@ -132,16 +142,17 @@ public final class RequestModel implements CollectionNode {
 		return headers.stream().anyMatch(h -> h.isActive() && h.getKey().trim().equalsIgnoreCase(headerName));
 	}
 
-	/** Deep copy that keeps the id and the collection link. */
+	/** Deep copy that keeps the id, the collection link and the assistant marker. */
 	public RequestModel copy() {
 		RequestModel copy = duplicate();
 		copy.id = id;
 		copy.name = name;
 		copy.collectionId = collectionId;
+		copy.createdByAssistant = createdByAssistant;
 		return copy;
 	}
 
-	/** Whether the user-editable fields (everything except id and collection link) are equal. */
+	/** Whether the user-editable fields (everything except id, collection link and assistant marker) are equal. */
 	public boolean sameContent(RequestModel other) {
 		return other != null && name.equals(other.name) && method == other.method && url.equals(other.url)
 				&& params.equals(other.params) && headers.equals(other.headers) && bodyType == other.bodyType
@@ -149,7 +160,7 @@ public final class RequestModel implements CollectionNode {
 				&& binaryFile.equals(other.binaryFile);
 	}
 
-	/** Deep copy with a fresh id and no collection link, used for "Duplicate". */
+	/** Deep copy with a fresh id, no collection link and no assistant marker, used for "Duplicate". */
 	public RequestModel duplicate() {
 		RequestModel copy = new RequestModel();
 		copy.name = name + " (copy)";
