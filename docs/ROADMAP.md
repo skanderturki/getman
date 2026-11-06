@@ -1,7 +1,8 @@
 # GetMan roadmap
 
-Status: 0.4.0 to 0.7.0 are released; 0.8.0 (secure storage) is the last planned release. The user guide was
-added in 0.7.0.
+Status: all planned releases, 0.4.0 to 0.8.0, are released (the user guide was added in 0.7.0). GetMan is
+available on the [Eclipse Marketplace](https://marketplace.eclipse.org/content/getman). No new features are
+planned; ideas for later releases are listed below.
 
 Planned work after 0.3.0, in release order. Each release is shippable on its own: merged to `main`, tagged,
 published to the update site, and announced in the GitHub release notes.

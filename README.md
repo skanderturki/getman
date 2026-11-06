@@ -1,5 +1,6 @@
 # GetMan
 
+[![Build](https://github.com/skanderturki/getman/actions/workflows/build.yml/badge.svg)](https://github.com/skanderturki/getman/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/skanderturki/getman)](https://github.com/skanderturki/getman/releases/latest)
 [![License: EPL 2.0](https://img.shields.io/github/license/skanderturki/getman)](LICENSE)
 [![Eclipse Marketplace](https://img.shields.io/badge/Eclipse%20Marketplace-GetMan-2C2255?logo=eclipseide)](https://marketplace.eclipse.org/content/getman)
