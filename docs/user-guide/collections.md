@@ -29,6 +29,8 @@ Right-click in the tree:
   - Drop **between** two items to place it there.
 - **Move To…** does the same from a list, without the mouse.
 - **Counts:** collections and folders show how many requests they contain.
+- **AI:** requests created by an AI assistant through the [MCP server](ai-assistants.md) are marked **AI**. The
+  assistant can change or delete only these.
 
 ## Deleting
 

@@ -95,8 +95,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 ## Roadmap
 
 Planned releases 0.4 to 0.8 are done. Next is **0.9: an optional MCP server**, so AI coding assistants such as
-Claude Code or Copilot can create and send requests through GetMan while you code in Eclipse (planned, not
-started). See [docs/ROADMAP.md](docs/ROADMAP.md) for what came with each release, the 0.9 plan, and ideas for
+Claude Code or Copilot can create and send requests through GetMan while you code in Eclipse (in progress). See [docs/ROADMAP.md](docs/ROADMAP.md) for what came with each release, the 0.9 plan, and ideas for
 later (response search, save response to file, cookie jar, scripts). Suggestions are welcome as
 [GitHub issues](https://github.com/skanderturki/getman/issues).
 
@@ -107,8 +106,11 @@ later (response search, save response to file, cookie jar, scripts). Suggestions
 | `bundles/com.getman.core` | UI-free logic: model, HTTP client, JSON, persistence, cURL export |
 | `bundles/com.getman.ui` | The Eclipse view (SWT/JFace) |
 | `tests/com.getman.core.tests` | JUnit 5 tests for core (test fragment) |
+| `bundles/com.getman.mcp` | Optional MCP server for AI assistants (MCP Java SDK, JDK HTTP server) |
+| `tests/com.getman.mcp.tests` | JUnit 5 tests for the MCP tools and protocol (test fragment) |
 | `bundles/com.getman.doc` | User guide for Eclipse Help, generated at build time from `docs/user-guide/*.md` |
 | `features/com.getman.feature` | Installable feature grouping the two bundles |
+| `features/com.getman.mcp.feature` | Optional feature: the MCP server and its third-party libraries |
 | `releng/com.getman.site` | Builds the p2 update site |
 
 ## Building

@@ -24,4 +24,7 @@ is still fully checked.
 
 If a request fails with *"TLS certificate not trusted"*, the message points you to this setting.
 
+The MCP server for AI assistants has its own page, **GetMan › MCP Server**, when the optional
+*GetMan MCP Server* is installed. See [AI assistants (MCP)](ai-assistants.md).
+
 Preferences are stored per workspace.

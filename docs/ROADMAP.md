@@ -2,7 +2,8 @@
 
 Status: 0.4.0 to 0.8.0 are released (the user guide was added in 0.7.0). GetMan is available on the
 [Eclipse Marketplace](https://marketplace.eclipse.org/content/getman). **0.9.0 (MCP server for AI coding
-assistants) is planned, not started**; it begins with a spike that decides whether the plan below holds.
+assistants) is in progress**: the spike confirmed the plan, and the tools, preferences, approval dialog, docs
+and tests are written; a manual check in the Eclipse IDE with Claude Code remains before the release.
 
 Planned work after 0.3.0, in release order. Each release is shippable on its own: merged to `main`, tagged,
 published to the update site, and announced in the GitHub release notes.
@@ -175,6 +176,10 @@ GetMan**, and every request it creates stays in GetMan, to review, edit, re-run 
   - that `com.sun.net.httpserver` is visible to the bundle.
 - **If the spike fails:** fall back to a hand-written JSON-RPC implementation over the same JDK HTTP server,
   which is small for the tools below.
+- **Result (done):** the plan holds. The SDK bundles load in Eclipse, Claude Code connected and called tools, the
+  feature resolves on 2024-03 and 2026-09, and the SDK adds about 5.8 MB in 12 bundles (only in the optional
+  feature). The SDK's ServiceLoader lookup does not work under OSGi, so GetMan creates its JSON mapper and schema
+  validator directly; missing package imports only show up at run time, so the protocol test runs the real server.
 
 **Tools exposed to the assistant**
 

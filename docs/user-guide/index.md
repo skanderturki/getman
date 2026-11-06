@@ -15,8 +15,9 @@ Eclipse. There's no account, no cloud sync and no telemetry.
 5. [Environments and variables](environments.md): `{{variables}}`, environments and collection variables
 6. [Import and export](import-export.md): cURL, Postman collections and environments, GetMan files
 7. [History](history.md): every request you send, ready to open again
-8. [Preferences](preferences.md): timeouts, redirects, HTTPS certificates and history size
-9. [Troubleshooting and FAQ](troubleshooting.md): common problems, and where your data is stored
+8. [AI assistants (MCP)](ai-assistants.md): let Claude Code, Copilot and other assistants create and send requests
+9. [Preferences](preferences.md): timeouts, redirects, HTTPS certificates and history size
+10. [Troubleshooting and FAQ](troubleshooting.md): common problems, and where your data is stored
 
 ## Quick reference
 

@@ -8,7 +8,8 @@ Every request you send is recorded in the **History** tab next to Collections.
 - **Each entry shows:**
   - the method and the URL that was actually called, with variables filled in;
   - the status (coloured), or *error*;
-  - the response time and the time it was sent.
+  - the response time and the time it was sent;
+  - **AI assistant** for requests an AI assistant sent through the [MCP server](ai-assistants.md).
 
 ## Using history
 
