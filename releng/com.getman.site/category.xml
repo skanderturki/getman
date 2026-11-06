@@ -3,6 +3,9 @@
    <feature id="com.getman.feature" version="0.0.0">
       <category name="getman"/>
    </feature>
+   <feature id="com.getman.mcp.feature" version="0.0.0">
+      <category name="getman"/>
+   </feature>
    <category-def name="getman" label="GetMan">
       <description>Free REST/HTTP client for the Eclipse IDE.</description>
    </category-def>

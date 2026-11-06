@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <!-- Spike only: a headless application that runs the MCP server, to test it without the IDE UI. -->
+   <extension id="spikeServer" point="org.eclipse.core.runtime.applications">
+      <application cardinality="singleton-global" thread="any" visible="true">
+         <run class="com.getman.mcp.SpikeApplication"/>
+      </application>
+   </extension>
+</plugin>

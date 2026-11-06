@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.getman.mcp.feature"
+      label="GetMan MCP Server (optional)"
+      version="0.8.0.qualifier"
+      provider-name="Jahiz Digital Solutions (Jahiz.tn)">
+
+   <description>
+      Optional: lets AI coding assistants such as Claude Code create and send requests through GetMan,
+      using the Model Context Protocol. Includes the MCP Java SDK and its libraries.
+   </description>
+
+   <copyright>
+      Copyright (c) 2026 GetMan contributors.
+   </copyright>
+
+   <license url="https://www.eclipse.org/legal/epl-2.0/">
+      This program and the accompanying materials are made available under the terms of the
+      Eclipse Public License 2.0, available at https://www.eclipse.org/legal/epl-2.0/
+      SPDX-License-Identifier: EPL-2.0
+      Included third-party libraries: MCP Java SDK (MIT), Project Reactor, Jackson, json-schema-validator,
+      SnakeYAML, ITU (Apache 2.0), SLF4J (MIT), Reactive Streams (MIT-0).
+   </license>
+
+   <requires>
+      <import feature="com.getman.feature" version="0.8.0" match="compatible"/>
+   </requires>
+
+   <plugin
+         id="com.getman.mcp"
+         version="0.0.0"/>
+
+   <plugin
+         id="io.modelcontextprotocol.sdk.mcp-core"
+         version="0.0.0"/>
+
+   <plugin
+         id="io.modelcontextprotocol.sdk.mcp-json-jackson2"
+         version="0.0.0"/>
+
+   <plugin
+         id="io.projectreactor.reactor-core"
+         version="0.0.0"/>
+
+   <plugin
+         id="reactive-streams"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.fasterxml.jackson.core.jackson-annotations"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.fasterxml.jackson.core.jackson-core"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.fasterxml.jackson.core.jackson-databind"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.fasterxml.jackson.dataformat.jackson-dataformat-yaml"
+         version="0.0.0"/>
+
+   <plugin
+         id="org.yaml.snakeyaml"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.networknt.json-schema-validator"
+         version="0.0.0"/>
+
+   <plugin
+         id="com.ethlo.time.itu"
+         version="0.0.0"/>
+
+   <plugin
+         id="slf4j.api"
+         version="0.0.0"/>
+
+</feature>

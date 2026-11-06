@@ -13,4 +13,18 @@
   <version>0.8.0-SNAPSHOT</version>
   <!-- Produces target/repository: the p2 update site to publish (into the update-site repo). -->
   <packaging>eclipse-repository</packaging>
+
+  <!-- The MCP Java SDK bundles, so this module's target platform contains them too. -->
+  <dependencies>
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp-core</artifactId>
+      <version>2.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp-json-jackson2</artifactId>
+      <version>2.1.0</version>
+    </dependency>
+  </dependencies>
 </project>
