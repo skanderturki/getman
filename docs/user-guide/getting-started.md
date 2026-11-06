@@ -8,6 +8,21 @@
 
 ## Install
 
+### From the Eclipse Marketplace (easiest)
+
+1. In Eclipse, open **Help › Eclipse Marketplace…**.
+2. Search for **GetMan** and click **Install** next to it.
+3. Confirm the selected feature, accept the license (EPL 2.0), finish the wizard and restart Eclipse when asked.
+
+You can also drag the **Install** button from the
+[GetMan Marketplace page](https://marketplace.eclipse.org/content/getman) or the
+[README](https://github.com/skanderturki/getman#install) onto your running Eclipse.
+
+If **Help › Eclipse Marketplace…** is missing, your Eclipse package doesn't include the Marketplace Client: use
+the update site below instead.
+
+### From the update site
+
 1. In Eclipse, open **Help › Install New Software…**.
 2. Click **Add…** and enter the update site:
 
@@ -23,7 +38,7 @@
 To install without internet access, download `getman-<version>-update-site.zip` from the
 [latest release](https://github.com/skanderturki/getman/releases/latest) and use **Add… › Archive…** in step 2.
 
-To update later, use **Help › Check for Updates**.
+Either way, update later with **Help › Check for Updates**.
 
 ## Open the GetMan view
 
