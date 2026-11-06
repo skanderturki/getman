@@ -94,8 +94,10 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Roadmap
 
-Planned releases 0.4 to 0.8 are done; see [docs/ROADMAP.md](docs/ROADMAP.md) for what came with each and the ideas
-for later (response search, save response to file, cookie jar, scripts). Suggestions are welcome as
+Planned releases 0.4 to 0.8 are done. Next is **0.9: an optional MCP server**, so AI coding assistants such as
+Claude Code or Copilot can create and send requests through GetMan while you code in Eclipse (planned, not
+started). See [docs/ROADMAP.md](docs/ROADMAP.md) for what came with each release, the 0.9 plan, and ideas for
+later (response search, save response to file, cookie jar, scripts). Suggestions are welcome as
 [GitHub issues](https://github.com/skanderturki/getman/issues).
 
 ## Project layout

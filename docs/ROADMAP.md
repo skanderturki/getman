@@ -1,8 +1,8 @@
 # GetMan roadmap
 
-Status: all planned releases, 0.4.0 to 0.8.0, are released (the user guide was added in 0.7.0). GetMan is
-available on the [Eclipse Marketplace](https://marketplace.eclipse.org/content/getman). No new features are
-planned; ideas for later releases are listed below.
+Status: 0.4.0 to 0.8.0 are released (the user guide was added in 0.7.0). GetMan is available on the
+[Eclipse Marketplace](https://marketplace.eclipse.org/content/getman). **0.9.0 (MCP server for AI coding
+assistants) is planned, not started**; it begins with a spike that decides whether the plan below holds.
 
 Planned work after 0.3.0, in release order. Each release is shippable on its own: merged to `main`, tagged,
 published to the update site, and announced in the GitHub release notes.
@@ -14,6 +14,7 @@ published to the update site, and announced in the GitHub release notes.
 | **0.6.0** | Request history and preferences (timeouts, redirects, self-signed TLS for local dev) | Small daily-use features, plus removing the `https://localhost` blocker |
 | **0.7.0** | Multipart form bodies and file upload | Upload endpoints; completes cURL `-F` import |
 | **0.8.0** | Secrets in Eclipse secure storage | Tokens, passwords and secret variables out of the plain-text state file |
+| **0.9.0** | MCP server for AI coding assistants (optional feature) | Claude Code, Copilot and other MCP clients create and send requests through GetMan; the requests stay in GetMan and secrets never reach the model |
 | Later | Response search, save response to file, image preview, cookie jar, scripts and tests | |
 
 Validate the order against demand: open one GitHub issue per release theme and invite 👍 votes.
@@ -121,3 +122,111 @@ Production from a dropdown.
 - Secret variables are masked in the environments table.
 - Migration: on first start, existing plain-text secrets are moved into secure storage.
 - Exports keep the current rule: secrets are left out unless included explicitly.
+
+---
+
+## 0.9.0: MCP server for AI coding assistants
+
+**Goal:** a developer codes in Eclipse with GetMan open and uses an AI assistant (Claude Code in a terminal,
+GitHub Copilot or any other MCP client) alongside it. The assistant creates and sends test requests **through
+GetMan**, and every request it creates stays in GetMan, to review, edit, re-run and export afterwards.
+
+**Why GetMan and not plain `curl`**
+- **Secrets never reach the model.** The assistant writes `{{token}}`; GetMan fills it in from secure storage
+  when sending and redacts secrets from what it returns.
+- **The work persists.** Generated requests become ordinary GetMan requests in a collection, not lines in
+  terminal scrollback.
+- **Environments are reused.** The assistant picks Local, Staging, … instead of guessing URLs and logins.
+- **A human stays in the loop.** GetMan runs inside Eclipse, so it can ask for approval in Eclipse before risky
+  calls.
+
+**Decisions**
+- **The server runs inside the Eclipse plugin**, over HTTP on localhost. It is available while Eclipse is open,
+  which matches the target scenario (Eclipse for coding, the assistant alongside). A standalone server for use
+  without Eclipse is out of scope.
+- **Built on the official [MCP Java SDK](https://github.com/modelcontextprotocol/java-sdk)** (2.x, MIT license),
+  not a hand-written protocol implementation. Reasons:
+  - the MCP spec keeps evolving, and following it becomes a version bump;
+  - the SDK is tested against real clients;
+  - tools are declared with typed schemas.
+
+  `mcp-core` is already an OSGi bundle (Java 17). Its dependencies (Reactor, Jackson, SLF4J) are also OSGi bundles
+  under Apache 2.0 or MIT, and are listed in `about.html`.
+- **Dependencies are contained:**
+  - all MCP code lives in a new `com.getman.mcp` bundle;
+  - `com.getman.core` and `com.getman.ui` stay dependency-free;
+  - it ships as an **optional feature**, "GetMan MCP Server", so users who don't want it don't install it.
+- **Transport: a small adapter** from the SDK's server transport interface to the JDK's built-in HTTP server
+  (`com.sun.net.httpserver`). The SDK's own HTTP transport needs Jakarta Servlet 6.1+, and the Jetty that ships
+  with Eclipse differs between 2024-03 and 2026-12, so we don't rely on it.
+- **The assistant cannot change your existing requests.** It can create requests, folders and collections, and
+  edit or delete **only requests it created**.
+- **Approval in Eclipse.** GET requests are sent freely. Any other method on an environment marked
+  **Production** shows an approval dialog in Eclipse first ("Claude Code wants to send DELETE … Allow / Deny").
+- **No saved assertions in 0.9.** The assistant judges responses itself. Saved assertions and a test runner that
+  works without AI (for example in CI) are a possible later release.
+
+**Step 1: spike (about half a day; nothing ships)**
+- Load the SDK bundles in Eclipse through Tycho, start a minimal server through the JDK HTTP adapter, and connect
+  Claude Code with `claude mcp add --transport http`. Call one tool.
+- Check:
+  - the bundles resolve on Eclipse 2024-03 and 2026-12 (p2 dry-run installs);
+  - the size of the added jars;
+  - that `com.sun.net.httpserver` is visible to the bundle.
+- **If the spike fails:** fall back to a hand-written JSON-RPC implementation over the same JDK HTTP server,
+  which is small for the tools below.
+
+**Tools exposed to the assistant**
+
+| Tool | What it does |
+|---|---|
+| `list_collections` | Collections, folders and request names and ids |
+| `get_request` | One request as written, with `{{variables}}` and no secret values |
+| `list_environments` | Environment names, which one is active, and variable **names** only (never values of secret variables) |
+| `create_request` | Create a request in a collection and folder, creating them if needed (default collection: one per project or task, named by the assistant, e.g. "orders-api (Claude)") |
+| `update_request` / `delete_request` | Only for requests the assistant created |
+| `send_request` | Send a saved request, or an ad-hoc one, in a chosen environment. Returns status, headers, time, size and the body (capped size, secrets redacted, marked as untrusted data) |
+| `import_curl` | Create a request from a cURL command |
+
+**Security**
+- **Off by default:** enabled in Preferences.
+- **Localhost only:** listens on `127.0.0.1`.
+- **Token required:** every call needs a random token (regenerate in Preferences).
+- **Browsers rejected:** requests with an `Origin` header are refused, so a web page can't reach the server.
+- **Secret redaction:**
+  - values of secret variables, tokens and passwords are redacted from everything returned;
+  - this includes `Authorization` headers and error messages.
+- **Body cap:** response bodies are size-capped, so a large or hostile response can't flood the assistant.
+
+**UI (`com.getman.ui`, with hooks the optional bundle plugs into)**
+- **Preferences › GetMan › MCP Server:**
+  - enable;
+  - port;
+  - token (show, copy, regenerate);
+  - **Copy Claude Code setup command**;
+  - short setup notes for other MCP clients.
+- **Environments dialog:** a **Production** checkbox per environment (drives the approval dialog).
+- **Live updates:** requests the assistant creates appear in the Collections tree immediately. Changes are applied
+  on the UI thread and saved like the user's own edits.
+- **History marking:** requests sent through MCP are marked as sent by an AI assistant in History.
+
+**Docs**
+- A new user-guide page, "Using GetMan with Claude Code and other AI assistants": setup, what the assistant can
+  and cannot do, security model, approval dialog.
+- README and Marketplace listing: mention the optional MCP feature.
+
+**Tests**
+- Core and tool logic (no Eclipse needed):
+  - tool input validation;
+  - the "only its own requests" rule;
+  - secret redaction in results;
+  - the Production approval decision.
+- A protocol test with the SDK's client against the server: initialize, list tools, create and send a request
+  against a local test HTTP server.
+- Manual check with Claude Code before release.
+
+**Out of scope (possible later releases)**
+- Saved assertions, variable extraction and chaining, and a collection test runner (also useful in CI without
+  AI).
+- OpenAPI import (`import_openapi`), to create a request per endpoint.
+- A standalone MCP server that works without Eclipse running.
