@@ -2,6 +2,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/skanderturki/getman)](https://github.com/skanderturki/getman/releases/latest)
 [![License: EPL 2.0](https://img.shields.io/github/license/skanderturki/getman)](LICENSE)
+[![Eclipse Marketplace](https://img.shields.io/badge/Eclipse%20Marketplace-GetMan-2C2255?logo=eclipseide)](https://marketplace.eclipse.org/content/getman)
 
 A free, lightweight REST/HTTP client built into the Eclipse IDE — no account, no cloud sync, no extra app.
 
@@ -9,6 +10,14 @@ A free, lightweight REST/HTTP client built into the Eclipse IDE — no account, 
 GetMan User Guide** and from the **?** button in the GetMan view.
 
 ## Install
+
+<a href="https://marketplace.eclipse.org/marketplace-client-intro?mpc_install=7578767" title="Drag to your running Eclipse workspace to install GetMan (requires the Eclipse Marketplace Client)"><img src="https://marketplace.eclipse.org/modules/custom/eclipsefdn/eclipsefdn_marketplace/images/btn-install.svg" alt="Drag to your running Eclipse workspace to install GetMan" width="160"></a>
+
+**From the Eclipse Marketplace (easiest):** drag the **Install** button above onto your running Eclipse, or open
+**Help › Eclipse Marketplace…**, search for **GetMan** and click **Install**. Listing:
+[marketplace.eclipse.org/content/getman](https://marketplace.eclipse.org/content/getman).
+
+**From the update site:**
 
 1. In Eclipse, open **Help › Install New Software…**, click **Add…** and enter the update site:
 
