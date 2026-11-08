@@ -26,7 +26,8 @@ GetMan User Guide** and from the **?** button in the GetMan view.
    https://skanderturki.github.io/getman-update-site/
    ```
 
-2. Tick **GetMan REST Client** and finish the wizard, then restart Eclipse.
+2. Tick **GetMan REST Client** (and, for AI coding assistants, **GetMan MCP Server (optional)**) and finish the
+   wizard, then restart Eclipse.
 3. Open it with **Window › Show View › Other… › GetMan › GetMan**.
 
 Offline: download `getman-*-update-site.zip` from the [latest release](https://github.com/skanderturki/getman/releases/latest)
@@ -52,8 +53,16 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ![Request tab context menu: Save to Collection, Save As, Rename, Duplicate, Copy as cURL, Close](docs/screenshots/copy-as-curl.png)
 
-## Features (0.8)
+## Features (0.9)
 
+- **AI coding assistants (MCP), optional** – install *GetMan MCP Server (optional)* and connect Claude Code,
+  GitHub Copilot or any other MCP client. The assistant reads your project, creates requests and environments in
+  GetMan, sends them and can build a whole **test suite** of your API. Its requests stay in GetMan to review and
+  re-run; it writes `{{token}}` and never sees secret values; sends that may change data in a **Production**
+  environment wait for your approval. See [AI assistants](docs/user-guide/ai-assistants.md).
+- **Checks and Run Collection** – give a request an **expected status** (`201`, `200, 204`, `2xx`) and see ✓ or ✗
+  after each send. Right-click a collection or folder › **Run Collection…** to send every request and see which
+  passed or failed.
 - **Request tabs** – method, URL, query params, headers and body: JSON, text, XML, URL-encoded form,
   **multipart form data** (text fields and file uploads) or a **binary file**. Double-click a tab to
   rename it; right-click for Duplicate, Copy as cURL, Close, Close Others.
@@ -68,7 +77,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
   exports unless you choose to include them.
 - **Collections and folders** – a tree on the left of the view. `Ctrl+S` in a request tab saves it to a collection
   (you pick the collection and name the first time; afterwards `Ctrl+S` just updates it). Tabs with unsaved
-  changes show a `*`. Organise requests in nested folders and **drag and drop** them to reorder or move them
+  changes show a `*`; `Ctrl+Shift+S` (**Save All**) saves them all. Organise requests in nested folders and **drag and drop** them to reorder or move them
   between folders and collections (or use *Move To…*). Right-click for New Request, New Folder, Rename (F2),
   Duplicate, Delete (Del), Export… and collection **Variables…**.
 - **Import from Postman** – right-click › *Import (GetMan or Postman)…* reads Postman Collection v2.0/v2.1 files
@@ -94,9 +103,8 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Roadmap
 
-Planned releases 0.4 to 0.8 are done. Next is **0.9: an optional MCP server**, so AI coding assistants such as
-Claude Code or Copilot can create and send requests through GetMan while you code in Eclipse (in progress). See [docs/ROADMAP.md](docs/ROADMAP.md) for what came with each release, the 0.9 plan, and ideas for
-later (response search, save response to file, cookie jar, scripts). Suggestions are welcome as
+Planned releases 0.4 to 0.9 are done; 0.9 added the optional MCP server for AI coding assistants. See
+[docs/ROADMAP.md](docs/ROADMAP.md) for what came with each release and ideas for later (response search, save response to file, cookie jar, scripts). Suggestions are welcome as
 [GitHub issues](https://github.com/skanderturki/getman/issues).
 
 ## Project layout
