@@ -6,9 +6,11 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -33,28 +35,50 @@ import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 
 import com.getman.core.history.HistoryEntry;
+import com.getman.core.run.RunRecord;
 
-/** Recently sent requests, grouped by day, newest first. Double-click opens one in a new tab. */
+/**
+ * Recently sent requests and collection runs, grouped by day, newest first. Each run is one group holding the
+ * results of its requests. Double-click opens a request in a new tab, or a run's results.
+ */
 class HistoryPanel extends Composite {
 	private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
 	private static final DateTimeFormatter DAY = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM);
 
-	/** A day heading with its entries. */
-	private record Day(String label, List<HistoryEntry> entries) {
+	/** A day heading with its entries and runs, newest first. */
+	private record Day(String label, List<Object> entries) {
+	}
+
+	/** One request's result in a run. */
+	private record RunItem(RunRecord run, int index) {
+		RunRecord.Item item() {
+			return run.items().get(index);
+		}
 	}
 
 	private final List<HistoryEntry> entries;
+	private final List<RunRecord> runs;
 	private final Consumer<HistoryEntry> onOpen;
+	private final Consumer<RunRecord> onOpenRun;
+	private final BiConsumer<RunRecord, RunRecord.Item> onOpenRunItem;
 	private final Runnable onChanged;
 	private final TreeViewer viewer;
 	private final Label emptyHint;
 	private List<Day> days = List.of();
 	private boolean historyOff;
 
-	HistoryPanel(Composite parent, List<HistoryEntry> entries, Consumer<HistoryEntry> onOpen, Runnable onChanged) {
+	/**
+	 * @param onOpenRun     shows a run's results
+	 * @param onOpenRunItem opens the saved request of one result of a run
+	 */
+	HistoryPanel(Composite parent, List<HistoryEntry> entries, List<RunRecord> runs, Consumer<HistoryEntry> onOpen,
+			Consumer<RunRecord> onOpenRun, BiConsumer<RunRecord, RunRecord.Item> onOpenRunItem, Runnable onChanged) {
 		super(parent, SWT.NONE);
 		this.entries = entries;
+		this.runs = runs;
 		this.onOpen = onOpen;
+		this.onOpenRun = onOpenRun;
+		this.onOpenRunItem = onOpenRunItem;
 		this.onChanged = onChanged;
 		GridLayout layout = new GridLayout(1, false);
 		layout.marginWidth = 0;
@@ -85,14 +109,17 @@ class HistoryPanel extends Composite {
 
 	/** Re-reads the entry list (newest first) and expands today. */
 	void refresh() {
-		days = group(entries);
+		Object[] expanded = viewer.getExpandedElements();
+		days = group(entries, runs);
 		viewer.refresh();
+		viewer.setExpandedElements(expanded);
 		if (!days.isEmpty()) {
 			viewer.setExpandedState(days.get(0), true);
 		}
-		boolean empty = entries.isEmpty();
+		boolean empty = entries.isEmpty() && runs.isEmpty();
 		emptyHint.setText(historyOff ? "History is turned off (Window › Preferences › GetMan)."
-				: "No requests sent yet.\n\nEvery request you send appears here, so you can open it again later.");
+				: "No requests sent yet.\n\nEvery request you send and every collection run appears here, so you "
+						+ "can open it again later.");
 		((GridData) emptyHint.getLayoutData()).exclude = !empty;
 		emptyHint.setVisible(empty);
 		layout(true);
@@ -103,11 +130,19 @@ class HistoryPanel extends Composite {
 		refresh();
 	}
 
-	private static List<Day> group(List<HistoryEntry> entries) {
+	private static long time(Object element) {
+		return element instanceof HistoryEntry e ? e.sentAtMillis()
+				: element instanceof RunRecord r ? r.startedAtMillis() : 0;
+	}
+
+	private static List<Day> group(List<HistoryEntry> entries, List<RunRecord> runs) {
 		LocalDate today = LocalDate.now();
-		Map<LocalDate, List<HistoryEntry>> byDay = new LinkedHashMap<>();
-		for (HistoryEntry e : entries) {
-			LocalDate d = Instant.ofEpochMilli(e.sentAtMillis()).atZone(ZoneId.systemDefault()).toLocalDate();
+		List<Object> all = new ArrayList<>(entries);
+		all.addAll(runs);
+		all.sort(Comparator.comparingLong(HistoryPanel::time).reversed());
+		Map<LocalDate, List<Object>> byDay = new LinkedHashMap<>();
+		for (Object e : all) {
+			LocalDate d = Instant.ofEpochMilli(time(e)).atZone(ZoneId.systemDefault()).toLocalDate();
 			byDay.computeIfAbsent(d, k -> new ArrayList<>()).add(e);
 		}
 		List<Day> out = new ArrayList<>();
@@ -124,6 +159,10 @@ class HistoryPanel extends Composite {
 		Object element = selected();
 		if (element instanceof HistoryEntry e) {
 			onOpen.accept(e);
+		} else if (element instanceof RunRecord r) {
+			onOpenRun.accept(r);
+		} else if (element instanceof RunItem i) {
+			onOpenRunItem.accept(i.run(), i.item());
 		} else if (element != null) {
 			viewer.setExpandedState(element, !viewer.getExpandedState(element));
 		}
@@ -133,8 +172,11 @@ class HistoryPanel extends Composite {
 		Object element = selected();
 		if (element instanceof HistoryEntry e) {
 			entries.remove(e);
+		} else if (element instanceof RunRecord r) {
+			runs.remove(r);
 		} else if (element instanceof Day d) {
 			entries.removeAll(d.entries());
+			runs.removeAll(d.entries());
 		} else {
 			return;
 		}
@@ -143,9 +185,11 @@ class HistoryPanel extends Composite {
 	}
 
 	private void clearAll() {
-		if (!entries.isEmpty() && MessageDialog.openConfirm(getShell(), "Clear History",
-				"Remove all " + entries.size() + " entries from the request history?")) {
+		int count = entries.size() + runs.size();
+		if (count > 0 && MessageDialog.openConfirm(getShell(), "Clear History",
+				"Remove all " + count + " entries (requests and collection runs) from the history?")) {
 			entries.clear();
+			runs.clear();
 			refresh();
 			onChanged.run();
 		}
@@ -161,6 +205,12 @@ class HistoryPanel extends Composite {
 			if (element instanceof HistoryEntry) {
 				menuItem(menu, "Open in New Tab", this::openSelection);
 				menuItem(menu, "Delete\tDel", this::deleteSelection);
+			} else if (element instanceof RunRecord r) {
+				menuItem(menu, "Show Results", this::openSelection);
+				menuItem(menu, "Export…", () -> RunDialog.export(getShell(), r));
+				menuItem(menu, "Delete\tDel", this::deleteSelection);
+			} else if (element instanceof RunItem) {
+				menuItem(menu, "Open Request", this::openSelection);
 			} else if (element instanceof Day d) {
 				menuItem(menu, "Delete " + d.label() + "'s Entries", this::deleteSelection);
 			}
@@ -168,7 +218,7 @@ class HistoryPanel extends Composite {
 				new MenuItem(menu, SWT.SEPARATOR);
 			}
 			MenuItem clear = menuItem(menu, "Clear History…", this::clearAll);
-			clear.setEnabled(!entries.isEmpty());
+			clear.setEnabled(!entries.isEmpty() || !runs.isEmpty());
 		});
 		viewer.getTree().setMenu(menu);
 	}
@@ -188,11 +238,24 @@ class HistoryPanel extends Composite {
 
 		@Override
 		public Object[] getChildren(Object parent) {
-			return parent instanceof Day d ? d.entries().toArray() : new Object[0];
+			if (parent instanceof Day d) {
+				return d.entries().toArray();
+			}
+			if (parent instanceof RunRecord r) {
+				Object[] items = new Object[r.items().size()];
+				for (int i = 0; i < items.length; i++) {
+					items[i] = new RunItem(r, i);
+				}
+				return items;
+			}
+			return new Object[0];
 		}
 
 		@Override
 		public Object getParent(Object element) {
+			if (element instanceof RunItem i) {
+				return i.run();
+			}
 			for (Day d : days) {
 				if (d.entries().contains(element)) {
 					return d;
@@ -203,7 +266,8 @@ class HistoryPanel extends Composite {
 
 		@Override
 		public boolean hasChildren(Object element) {
-			return element instanceof Day d && !d.entries().isEmpty();
+			return element instanceof Day d && !d.entries().isEmpty()
+					|| element instanceof RunRecord r && !r.items().isEmpty();
 		}
 	}
 
@@ -226,12 +290,42 @@ class HistoryPanel extends Composite {
 				}
 				return s;
 			}
+			if (element instanceof RunRecord r) {
+				StyledString s = new StyledString("Run " + r.title() + "  ");
+				s.append(r.summary().toString(), styler(r.hasProblems() ? RunDialog.RED : RunDialog.GREEN));
+				s.append("  " + (r.environment().isEmpty() ? "no environment" : r.environment()) + " · "
+						+ TIME.format(Instant.ofEpochMilli(r.startedAtMillis()).atZone(ZoneId.systemDefault())),
+						StyledString.QUALIFIER_STYLER);
+				if (r.viaAssistant()) {
+					s.append(" · AI assistant", StyledString.QUALIFIER_STYLER);
+				}
+				return s;
+			}
+			if (element instanceof RunItem ri) {
+				RunRecord.Item i = ri.item();
+				StyledString s = new StyledString(RunDialog.outcomeLabel(i.outcome()),
+						styler(RunDialog.outcomeColor(i.outcome())));
+				s.append("  " + i.method() + "  ", StyledString.DECORATIONS_STYLER).append(i.label());
+				String status = i.status() == 0 ? "" : "  " + i.status();
+				String detail = i.message().isEmpty() ? "" : " · " + i.message();
+				s.append(status + detail, StyledString.QUALIFIER_STYLER);
+				return s;
+			}
 			return new StyledString(String.valueOf(element));
 		}
 
 		@Override
 		public String getText(Object element) {
 			return getStyledText(element).getString();
+		}
+
+		private static StyledString.Styler styler(Color color) {
+			return new StyledString.Styler() {
+				@Override
+				public void applyStyles(TextStyle textStyle) {
+					textStyle.foreground = color;
+				}
+			};
 		}
 
 		private static StyledString.Styler statusStyler(HistoryEntry e) {
@@ -250,8 +344,16 @@ class HistoryPanel extends Composite {
 		@Override
 		public Image getImage(Object element) {
 			ISharedImages images = PlatformUI.getWorkbench().getSharedImages();
-			return element instanceof Day ? images.getImage(ISharedImages.IMG_OBJ_FOLDER)
-					: images.getImage(ISharedImages.IMG_OBJ_FILE);
+			if (element instanceof Day) {
+				return images.getImage(ISharedImages.IMG_OBJ_FOLDER);
+			}
+			if (element instanceof RunRecord r) {
+				return images.getImage(r.hasProblems() ? ISharedImages.IMG_OBJS_ERROR_TSK : ISharedImages.IMG_OBJS_INFO_TSK);
+			}
+			if (element instanceof RunItem) {
+				return null;
+			}
+			return images.getImage(ISharedImages.IMG_OBJ_FILE);
 		}
 	}
 }

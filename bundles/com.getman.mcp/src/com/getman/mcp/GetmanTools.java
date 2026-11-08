@@ -36,6 +36,7 @@ import com.getman.core.model.RequestCollection;
 import com.getman.core.model.RequestModel;
 import com.getman.core.model.ResponseModel;
 import com.getman.core.run.CollectionRunner;
+import com.getman.core.run.RunRecord;
 import com.getman.core.variables.VariableResolver;
 import com.getman.ui.api.GetmanWorkspace;
 
@@ -172,7 +173,7 @@ public final class GetmanTools {
 						+ "whether its status matched its expectedStatus. {{variables}} come from the environment "
 						+ "(default: the one selected in GetMan) and the collection. In a Production environment, "
 						+ "the user must approve the run in Eclipse when it contains anything but GET, HEAD or "
-						+ "OPTIONS. Runs are not added to History.",
+						+ "OPTIONS. The run is kept in GetMan's History tab, marked as run by an AI assistant.",
 				"\"collection\":{\"type\":\"string\",\"description\":\"Collection name\"},"
 						+ "\"folder\":{\"type\":\"string\",\"description\":\"Optional folder path inside the collection, "
 						+ "e.g. 'orders/admin'; omit to run the whole collection\"},"
@@ -667,8 +668,8 @@ public final class GetmanTools {
 
 	// --- running -----------------------------------------------------------------------------------
 
-	private record PreparedRun(String title, List<RequestModel> requests, Map<String, String> values,
-			Environment environment, Redactor redactor, HttpService http) {
+	private record PreparedRun(String title, RunRecord template, List<RequestModel> requests,
+			Map<String, String> values, Environment environment, Redactor redactor, HttpService http) {
 	}
 
 	private Object runCollection(Map<String, Object> args) throws ToolException {
@@ -693,9 +694,11 @@ public final class GetmanTools {
 			if (env != null) {
 				values.putAll(env.activeValues());
 			}
-			String title = container == c ? c.getName() : c.getName() + "/" + folder.trim();
-			return new PreparedRun(title, requests, values, env, Redactor.of(ws.environments(), ws.collections(), null),
-					ws.http());
+			String title = container == c ? c.getName() : c.getName() + "/" + container.getName();
+			RunRecord template = RunRecord.template(c.getId(), c.getName(), container == c ? "" : container.getId(),
+					container == c ? "" : container.getName(), env == null ? "" : env.getName(), true);
+			return new PreparedRun(title, template, requests, values, env,
+					Redactor.of(ws.environments(), ws.collections(), null), ws.http());
 		});
 		List<RequestModel> writes = p.requests().stream().filter(r -> needsApproval(p.environment(), r.getMethod()))
 				.toList();
@@ -714,9 +717,12 @@ public final class GetmanTools {
 						+ p.environment().getName() + "\". Do not retry it.");
 			}
 		}
+		long startedAt = System.currentTimeMillis();
 		List<CollectionRunner.Result> results = new CollectionRunner(p.http()).run(p.requests(), p.values(), null);
 		CollectionRunner.Summary summary = CollectionRunner.Summary.of(results);
+		RunRecord record = p.template().withResults(startedAt, results, p.redactor()::redact);
 		host.onWorkspace(ws -> {
+			ws.recordRun(record);
 			ws.showStatus("An AI assistant ran \"" + p.title() + "\": " + summary + ".");
 			return null;
 		});

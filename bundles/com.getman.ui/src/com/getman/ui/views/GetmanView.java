@@ -65,10 +65,13 @@ import com.getman.core.history.HistoryStore;
 import com.getman.core.http.HttpService;
 import com.getman.core.model.CollectionNode;
 import com.getman.core.model.Environment;
+import com.getman.core.model.KeyValue;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.NodeContainer;
 import com.getman.core.model.RequestCollection;
 import com.getman.core.model.RequestModel;
+import com.getman.core.run.RunRecord;
+import com.getman.core.run.RunStore;
 import com.getman.core.store.StateStore;
 import com.getman.core.store.WorkspaceState;
 import com.getman.core.variables.VariableResolver;
@@ -87,12 +90,15 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 	private static final String MANAGE_ENVIRONMENTS = "Manage Environments…";
 
 	private static final String HISTORY_FILE = "history.json";
+	private static final String RUNS_FILE = "runs.json";
 	private static final String USER_GUIDE = "/com.getman.doc/html/index.html";
 
 	private final HttpService http = new HttpService(GetmanPreferences.httpSettings());
 	private final List<HistoryEntry> history = new ArrayList<>();
 	private final Runnable saveHistoryNow = this::saveHistory;
 	private HistoryStore historyStore;
+	private final List<RunRecord> runs = new ArrayList<>();
+	private RunStore runStore;
 	private HistoryPanel historyPanel;
 	private final IPreferenceChangeListener preferenceListener = event -> preferenceChanged(event.getKey());
 	private final Runnable saveNow = this::save;
@@ -119,6 +125,8 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 		historyStore = new HistoryStore(stateLocation.resolve(HISTORY_FILE),
 				EclipseSecretStore.forWorkspace(stateLocation, "history"));
 		history.addAll(historyStore.load());
+		runStore = new RunStore(stateLocation.resolve(RUNS_FILE));
+		runs.addAll(runStore.load());
 		GetmanPreferences.instanceNode().addPreferenceChangeListener(preferenceListener);
 
 		sash = new SashForm(parent, SWT.HORIZONTAL);
@@ -129,7 +137,8 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 		collectionsTab.setControl(collectionsPanel);
 		CTabItem historyTab = new CTabItem(side, SWT.NONE);
 		historyTab.setText("History");
-		historyPanel = new HistoryPanel(side, history, this::openFromHistory, this::scheduleHistorySave);
+		historyPanel = new HistoryPanel(side, history, runs, this::openFromHistory, this::showRun, this::openRunItem,
+				this::scheduleHistorySave);
 		historyPanel.setHistoryOff(GetmanPreferences.historySize() == 0);
 		historyTab.setControl(historyPanel);
 		side.setSelection(collectionsTab);
@@ -227,6 +236,40 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 		scheduleHistorySave();
 	}
 
+	/** Adds a finished collection run to the History tab (when history is on). */
+	@Override
+	public void recordRun(RunRecord run) {
+		if (GetmanPreferences.historySize() == 0 || historyPanel == null || historyPanel.isDisposed()) {
+			return;
+		}
+		RunStore.add(runs, run);
+		historyPanel.refresh();
+		scheduleHistorySave();
+	}
+
+	/** Shows a run from the History tab; Run Again runs the same collection or folder if it still exists. */
+	private void showRun(RunRecord run) {
+		RequestCollection collection = findCollection(run.collectionId());
+		NodeContainer container = collection == null ? null
+				: collection.findContainer(run.folderId().isEmpty() ? collection.getId() : run.folderId());
+		Runnable rerun = container == null ? null : () -> run(collection, container);
+		new RunDialog(tabs.getShell(), run, id -> openRunItem(run, id), rerun).open();
+	}
+
+	private void openRunItem(RunRecord run, RunRecord.Item item) {
+		openRunItem(run, item.requestId());
+	}
+
+	private void openRunItem(RunRecord run, String requestId) {
+		RequestCollection collection = findCollection(run.collectionId());
+		RequestModel saved = collection == null ? null : collection.findRequest(requestId);
+		if (saved == null) {
+			showStatus("That request is no longer in the collection.");
+		} else {
+			openRequest(collection, saved);
+		}
+	}
+
 	/** Opens a history entry as a new, unsaved tab (it keeps its {{variables}}). */
 	private void openFromHistory(HistoryEntry entry) {
 		RequestModel copy = entry.request().duplicate();
@@ -252,6 +295,9 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 		while (history.size() > max) {
 			history.remove(history.size() - 1);
 		}
+		if (max == 0) {
+			runs.clear();
+		}
 		if (historyPanel != null && !historyPanel.isDisposed()) {
 			historyPanel.setHistoryOff(max == 0);
 		}
@@ -272,6 +318,11 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 			reportSecretProblems(historyStore.save(history, GetmanPreferences.historySize()));
 		} catch (IOException e) {
 			log.log(Status.error("Could not save GetMan history to " + historyStore.getFile(), e));
+		}
+		try {
+			runStore.save(runs);
+		} catch (IOException e) {
+			log.log(Status.error("Could not save GetMan collection runs to " + runStore.getFile(), e));
 		}
 	}
 
@@ -783,15 +834,18 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 		if (env != null) {
 			values.putAll(env.activeValues()); // the environment overrides collection variables
 		}
-		String title = "Run " + (container == collection ? collection.getName()
-				: collection.getName() + " › " + container.getName())
-				+ (env == null ? " (no environment)" : " in " + env.getName());
-		new RunDialog(tabs.getShell(), title, requests, values, http, id -> {
+		RunRecord template = RunRecord.template(collection.getId(), collection.getName(),
+				container == collection ? "" : container.getId(), container == collection ? "" : container.getName(),
+				env == null ? "" : env.getName(), false);
+		// Values of secret variables are masked in what is kept of the run.
+		List<KeyValue> variables = new ArrayList<>(collection.getVariables());
+		environments.forEach(e -> variables.addAll(e.getVariables()));
+		new RunDialog(tabs.getShell(), template, requests, values, RunRecord.masking(variables), http, id -> {
 			RequestModel saved = collection.findRequest(id);
 			if (saved != null) {
 				openRequest(collection, saved);
 			}
-		}).open();
+		}, this::recordRun).open();
 	}
 
 	private RequestCollection chooseCollection(String title) {

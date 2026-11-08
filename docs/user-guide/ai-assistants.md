@@ -86,8 +86,8 @@ For example, in VS Code with GitHub Copilot, add this to `.vscode/mcp.json` or y
 - **Environments:** if no environment has what it needs, the assistant can read your project (server port,
   API prefix) and create one, for example *Local* with `baseUrl`. It is marked **(AI)** in Manage Environments,
   and selected if none was. For tokens and passwords it adds an empty secret variable and asks you to fill it in.
-- **History:** requests the assistant sends appear in the History tab, marked **AI assistant**. Collection runs
-  are not added to History.
+- **History:** requests the assistant sends and collections it runs appear in the History tab, marked
+  **AI assistant**. Each run is one group, which you can open, run again or export.
 - **The GetMan view opens by itself** if it was closed when the assistant needs it.
 
 ## Build a test suite

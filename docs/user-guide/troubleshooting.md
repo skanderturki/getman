@@ -51,7 +51,8 @@ Everything is stored locally, per workspace, in the GetMan plugin's state folder
 ```
 <workspace>/.metadata/.plugins/com.getman.ui/
 ├── state.json      open tabs, collections, environments
-└── history.json    request history
+├── history.json    request history
+└── runs.json       collection run results
 ```
 
 The files are plain JSON and are saved shortly after every change. If `state.json` is ever damaged, GetMan starts

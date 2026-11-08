@@ -15,6 +15,7 @@ import com.getman.core.http.HttpService;
 import com.getman.core.model.CollectionNode;
 import com.getman.core.model.Environment;
 import com.getman.core.model.RequestCollection;
+import com.getman.core.run.RunRecord;
 import com.sun.net.httpserver.HttpServer;
 
 /** In-memory stand-ins for Eclipse: a workspace, a host that answers approvals as told, and an echo server. */
@@ -26,6 +27,7 @@ final class Fakes {
 		final List<RequestCollection> collections = new ArrayList<>();
 		final List<Environment> environments = new ArrayList<>();
 		final List<HistoryEntry> history = new ArrayList<>();
+		final List<RunRecord> runs = new ArrayList<>();
 		final HttpService http = new HttpService();
 		Environment active;
 		int changes;
@@ -75,6 +77,11 @@ final class Fakes {
 		@Override
 		public void recordHistory(HistoryEntry entry) {
 			history.add(0, entry);
+		}
+
+		@Override
+		public void recordRun(RunRecord run) {
+			runs.add(0, run);
 		}
 
 		@Override

@@ -316,10 +316,18 @@ class GetmanToolsTest {
 		assertTrue(((String) failed.get("body")).contains(Redactor.MASK), "the echoed token is hidden");
 		assertFalse(mapper.writeValueAsString(run).contains(SECRET));
 		assertEquals(3, echo.requests.get());
-		assertTrue(host.workspace.history.isEmpty(), "runs are not added to History");
+		assertTrue(host.workspace.history.isEmpty(), "single requests of a run are not added to History");
+		assertEquals(1, host.workspace.runs.size(), "the run is kept as one group");
+		var kept = host.workspace.runs.get(0);
+		assertTrue(kept.viaAssistant());
+		assertEquals("suite", kept.title());
+		assertEquals(3, kept.items().size());
+		assertEquals("Expected 200, got 404.", kept.items().get(1).message());
 
 		assertEquals("1 passed", ok("run_collection", Map.of("collection", "suite", "folder", "a/")).get("summary")
 				.toString().substring(0, 8));
+		assertEquals("suite › a", host.workspace.runs.get(0).title());
+		assertFalse(host.workspace.runs.get(0).folderId().isEmpty());
 		assertTrue(failure("run_collection", Map.of("collection", "suite", "folder", "nope")).contains("no folder"));
 	}
 

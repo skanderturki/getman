@@ -2,6 +2,7 @@
 
 Status: 0.4.0 to 0.9.0 are released (the user guide was added in 0.7.0, the MCP server for AI coding assistants
 in 0.9.0). GetMan is available on the [Eclipse Marketplace](https://marketplace.eclipse.org/content/getman).
+**0.9.1 (run results in History, export) is in progress.**
 
 Planned work after 0.3.0, in release order. Each release is shippable on its own: merged to `main`, tagged,
 published to the update site, and announced in the GitHub release notes.
@@ -14,6 +15,7 @@ published to the update site, and announced in the GitHub release notes.
 | **0.7.0** | Multipart form bodies and file upload | Upload endpoints; completes cURL `-F` import |
 | **0.8.0** | Secrets in Eclipse secure storage | Tokens, passwords and secret variables out of the plain-text state file |
 | **0.9.0** | MCP server for AI coding assistants (optional feature) | Claude Code, Copilot and other MCP clients create and send requests through GetMan; the requests stay in GetMan and secrets never reach the model |
+| **0.9.1** | Run results kept in History, export to HTML, CSV and JUnit XML | Test suites are only useful if their results can be found, compared and shared |
 | Later | Response search, save response to file, image preview, cookie jar, scripts and tests | |
 
 Validate the order against demand: open one GitHub issue per release theme and invite 👍 votes.
@@ -238,5 +240,19 @@ GetMan**, and every request it creates stays in GetMan, to review, edit, re-run 
 
 **Out of scope (possible later releases)**
 - Richer assertions (body, headers, time), variable extraction and chaining, and a command-line runner for CI.
+- Letting the assistant read past runs (for example "what broke since the last run?").
+
+## 0.9.1: Run results
+
+**Goal:** when you run a test suite, its results are kept and can be shared.
+
+- **Runs in History:** each finished run of a collection or folder (by you or by an AI assistant) is kept in the
+  History tab as **one group**: the run's title, summary, environment and time, with one child per request
+  (result, status, details). Double-click opens the results window again, with **Run Again**; double-click a
+  result opens the request.
+- **Export:** **Export…** in the results window and in the run's right-click menu writes an **HTML report**, a
+  **CSV** file or a **JUnit XML** file.
+- **What is kept:** no response bodies; values of secret variables are masked. The last 20 runs per collection,
+  at most 100 in all, in `runs.json` next to `history.json`. Turning history off also stops keeping runs.
 - OpenAPI import (`import_openapi`), to create a request per endpoint.
 - A standalone MCP server that works without Eclipse running.

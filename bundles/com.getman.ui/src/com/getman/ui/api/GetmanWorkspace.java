@@ -8,6 +8,7 @@ import com.getman.core.http.HttpService;
 import com.getman.core.model.CollectionNode;
 import com.getman.core.model.Environment;
 import com.getman.core.model.RequestCollection;
+import com.getman.core.run.RunRecord;
 
 /**
  * The collections, environments and history of the open GetMan view, for other GetMan bundles (the optional MCP
@@ -41,6 +42,9 @@ public interface GetmanWorkspace {
 
 	/** Adds a sent request to the History tab (when history is on). */
 	void recordHistory(HistoryEntry entry);
+
+	/** Adds a finished collection run to the History tab (when history is on). */
+	void recordRun(RunRecord run);
 
 	/** Shows a message in the Eclipse status line. */
 	void showStatus(String message);

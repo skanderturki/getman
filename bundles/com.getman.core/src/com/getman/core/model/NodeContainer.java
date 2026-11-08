@@ -19,6 +19,22 @@ public interface NodeContainer {
 		return out;
 	}
 
+	/** This container if {@code id} is its id, else the sub-folder with that id; null when there is none. */
+	default NodeContainer findContainer(String id) {
+		if (getId().equals(id)) {
+			return this;
+		}
+		for (CollectionNode node : getItems()) {
+			if (node instanceof Folder f) {
+				NodeContainer found = f.findContainer(id);
+				if (found != null) {
+					return found;
+				}
+			}
+		}
+		return null;
+	}
+
 	private static void collect(NodeContainer container, List<RequestModel> out) {
 		for (CollectionNode node : container.getItems()) {
 			if (node instanceof RequestModel r) {

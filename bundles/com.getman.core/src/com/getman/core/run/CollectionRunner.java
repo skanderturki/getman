@@ -42,9 +42,17 @@ public final class CollectionRunner {
 	/** Counts per outcome. */
 	public record Summary(int passed, int failed, int notChecked, int errors, int stopped) {
 		public static Summary of(List<Result> results) {
+			return count(results.stream().map(Result::outcome).toList());
+		}
+
+		public static Summary count(List<Outcome> outcomes) {
 			int[] n = new int[Outcome.values().length];
-			results.forEach(r -> n[r.outcome().ordinal()]++);
+			outcomes.forEach(o -> n[o.ordinal()]++);
 			return new Summary(n[0], n[1], n[2], n[3], n[4]);
+		}
+
+		public int total() {
+			return passed + failed + notChecked + errors + stopped;
 		}
 
 		/** "3 passed, 1 failed, 2 not checked" (zero counts left out). */

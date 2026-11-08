@@ -52,7 +52,10 @@ the other, from top to bottom.
   requests, you are asked to confirm first.
 - **The results window** lists each request with its result, status, expected status, time and details. It stays
   open while you work. **Stop** stops the run, **Run Again** repeats it, and double-clicking a request opens it.
-- Runs are not added to History.
+- **History:** each finished run is kept in the [History tab](history.md#collection-runs) as one group, so you can
+  open its results later and compare runs.
+- **Export…** saves the results as an **HTML report** (to read or share), a **CSV** file (for a spreadsheet) or a
+  **JUnit XML** file (the format CI servers such as Jenkins and GitLab read). Pick the type in the save dialog.
 
 An [AI assistant](ai-assistants.md) can create a whole suite of requests with expected statuses from your
 project's code, so you can re-run it here at any time.
