@@ -152,7 +152,7 @@ class EnvironmentsDialog extends Dialog {
 		int keep = list.getSelectionIndex();
 		list.removeAll();
 		for (Environment e : working) {
-			list.add(e.getName().isBlank() ? "Untitled" : e.getName());
+			list.add((e.getName().isBlank() ? "Untitled" : e.getName()) + (e.isCreatedByAssistant() ? "  (AI)" : ""));
 		}
 		if (keep >= 0 && keep < working.size()) {
 			list.select(keep);
@@ -171,7 +171,11 @@ class EnvironmentsDialog extends Dialog {
 		productionCheck.setEnabled(has);
 		productionCheck.setSelection(has && env.isProduction());
 		if (has) {
-			tableTitle.setText("Variables of \"" + env.getName() + "\"");
+			tableTitle.setText("Variables of \"" + env.getName() + "\"" + (env.isCreatedByAssistant()
+					? " (created by an AI assistant, which may change it)" : ""));
+			tableTitle.setToolTipText(env.isCreatedByAssistant() ? "The assistant can add variables and change "
+					+ "their values, but never secret values. Check Production to stop it changing this environment."
+					: null);
 			new KeyValueTable(tableHolder, env.getVariables(), "Variable", () -> {
 			}, true);
 		} else {
@@ -210,6 +214,7 @@ class EnvironmentsDialog extends Dialog {
 		if (name != null) {
 			Environment copy = env.copy();
 			copy.setId(null); // fresh id
+			copy.setCreatedByAssistant(false); // the copy is the user's
 			copy.setName(name);
 			working.add(list.getSelectionIndex() + 1, copy);
 			int at = list.getSelectionIndex() + 1;

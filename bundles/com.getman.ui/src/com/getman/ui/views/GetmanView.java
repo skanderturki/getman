@@ -3,6 +3,8 @@ package com.getman.ui.views;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,7 @@ import org.eclipse.jface.action.ControlContribution;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.Separator;
+import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ArrayContentProvider;
@@ -62,6 +65,8 @@ import com.getman.core.history.HistoryStore;
 import com.getman.core.http.HttpService;
 import com.getman.core.model.CollectionNode;
 import com.getman.core.model.Environment;
+import com.getman.core.model.HttpMethod;
+import com.getman.core.model.NodeContainer;
 import com.getman.core.model.RequestCollection;
 import com.getman.core.model.RequestModel;
 import com.getman.core.store.StateStore;
@@ -314,10 +319,15 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 	}
 
 	private void manageEnvironments() {
+		Set<String> shown = new HashSet<>();
+		environments.forEach(e -> shown.add(e.getId()));
 		EnvironmentsDialog dialog = new EnvironmentsDialog(tabs.getShell(), environments, activeEnvironmentId);
 		if (dialog.open() == Window.OK) {
+			// An AI assistant may have created environments while the dialog was open: keep them.
+			List<Environment> createdMeanwhile = environments.stream().filter(e -> !shown.contains(e.getId())).toList();
 			environments.clear();
 			environments.addAll(dialog.getResult());
+			environments.addAll(createdMeanwhile);
 			if (activeEnvironment() == null) {
 				// The active one was deleted, or there was none: pick the first so variables work right away.
 				activeEnvironmentId = environments.isEmpty() ? "" : environments.get(0).getId();
@@ -506,6 +516,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 			CTabItem target = item;
 			menuItem(menu, "Save to Collection\tCtrl+S", () -> saveToCollection(target, false));
 			menuItem(menu, "Save As…", () -> saveToCollection(target, true));
+			menuItem(menu, "Save All\tCtrl+Shift+S", this::saveAll);
 			new MenuItem(menu, SWT.SEPARATOR);
 			menuItem(menu, "Rename…", () -> rename(target));
 			menuItem(menu, "Duplicate", () -> duplicate(target));
@@ -541,6 +552,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 		}));
 		toolbar.add(action("Save to Collection (Ctrl+S)", images, ISharedImages.IMG_ETOOL_SAVE_EDIT,
 				() -> saveSelected(false)));
+		toolbar.add(action("Save All (Ctrl+Shift+S)", images, ISharedImages.IMG_ETOOL_SAVEALL_EDIT, this::saveAll));
 		toolbar.add(action("Import cURL Command…", images, ISharedImages.IMG_TOOL_PASTE, this::importCurl));
 		toolbar.add(action("Duplicate Request", images, ISharedImages.IMG_TOOL_COPY, () -> {
 			CTabItem item = selectedItem();
@@ -567,6 +579,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 		viewMenu.add(new Separator());
 		viewMenu.add(action("Import cURL Command…", images, ISharedImages.IMG_TOOL_PASTE, this::importCurl));
 		viewMenu.add(action("Save As…", images, null, () -> saveSelected(true)));
+		viewMenu.add(action("Save All\tCtrl+Shift+S", images, ISharedImages.IMG_ETOOL_SAVEALL_EDIT, this::saveAll));
 		viewMenu.add(new Separator());
 		viewMenu.add(action("User Guide", images, ISharedImages.IMG_LCL_LINKTO_HELP, this::openUserGuide));
 	}
@@ -589,7 +602,7 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 		return action;
 	}
 
-	/** Ctrl+S / Ctrl+Shift+S while the view is active save the selected tab to a collection. */
+	/** While the view is active, Ctrl+S saves the selected tab, Save As saves a copy, Ctrl+Shift+S saves all tabs. */
 	private void activateSaveHandlers() {
 		IHandlerService handlers = getSite().getService(IHandlerService.class);
 		if (handlers == null) {
@@ -606,6 +619,13 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 			@Override
 			public Object execute(ExecutionEvent event) {
 				saveSelected(true);
+				return null;
+			}
+		});
+		handlers.activateHandler(IWorkbenchCommandConstants.FILE_SAVE_ALL, new AbstractHandler() {
+			@Override
+			public Object execute(ExecutionEvent event) {
+				saveAll();
 				return null;
 			}
 		});
@@ -678,6 +698,100 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 		updateAllTabTitles();
 		scheduleSave();
 		showStatus("Saved \"" + saved.getName() + "\" to collection \"" + target.getName() + "\".");
+	}
+
+	/**
+	 * Saves every open tab that has unsaved changes and is already in a collection. Tabs that are in no collection
+	 * are left alone (saving them asks where, one by one: use Ctrl+S on them).
+	 */
+	private void saveAll() {
+		int saved = 0;
+		int notInCollection = 0;
+		for (CTabItem item : tabs.getItems()) {
+			RequestModel model = (RequestModel) item.getData();
+			RequestCollection collection = findCollection(model.getCollectionId());
+			if (collection == null) {
+				if (!model.getUrl().isBlank()) {
+					notInCollection++;
+				}
+			} else if (!model.sameContent(collection.findRequest(model.getId()))) {
+				collection.put(model);
+				saved++;
+			}
+		}
+		if (saved > 0) {
+			collectionsPanel.refresh();
+			updateAllTabTitles();
+			scheduleSave();
+		}
+		String message = saved == 0 ? "No unsaved changes in collections."
+				: "Saved " + saved + (saved == 1 ? " request." : " requests.");
+		if (notInCollection > 0) {
+			message += " " + notInCollection + (notInCollection == 1 ? " tab is" : " tabs are")
+					+ " not in a collection: save with Ctrl+S.";
+		}
+		showStatus(message);
+	}
+
+	private boolean hasUnsavedChanges(RequestCollection collection) {
+		for (CTabItem item : tabs.getItems()) {
+			RequestModel model = (RequestModel) item.getData();
+			if (collection.getId().equals(model.getCollectionId())
+					&& !model.sameContent(collection.findRequest(model.getId()))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// --- running -------------------------------------------------------------------------------
+
+	private static final Set<HttpMethod> READ_ONLY_METHODS = EnumSet.of(HttpMethod.GET, HttpMethod.HEAD,
+			HttpMethod.OPTIONS);
+
+	@Override
+	public void run(RequestCollection collection, NodeContainer container) {
+		if (collection == null) {
+			return;
+		}
+		String what = container == collection ? "collection \"" + collection.getName() + "\""
+				: "folder \"" + container.getName() + "\"";
+		if (container.allRequests().isEmpty()) {
+			MessageDialog.openInformation(tabs.getShell(), "Run", "The " + what + " has no requests.");
+			return;
+		}
+		if (hasUnsavedChanges(collection)) {
+			int choice = new MessageDialog(tabs.getShell(), "Run", null, "Some open tabs of \"" + collection.getName()
+					+ "\" have unsaved changes. The run sends the saved requests.", MessageDialog.QUESTION, 0,
+					"Save All and Run", "Run Saved Requests", IDialogConstants.CANCEL_LABEL).open();
+			if (choice == 0) {
+				saveAll();
+			} else if (choice != 1) {
+				return;
+			}
+		}
+		List<RequestModel> requests = container.allRequests().stream().map(RequestModel::copy).toList();
+		Environment env = activeEnvironment();
+		long writes = requests.stream().filter(r -> !READ_ONLY_METHODS.contains(r.getMethod())).count();
+		if (env != null && env.isProduction() && writes > 0 && !MessageDialog.openConfirm(tabs.getShell(), "Run",
+				"The " + what + " has " + writes + (writes == 1 ? " request" : " requests") + " that may change data "
+						+ "(POST, PUT, PATCH, DELETE), and the environment \"" + env.getName() + "\" is marked "
+						+ "Production.\n\nRun it anyway?")) {
+			return;
+		}
+		Map<String, String> values = new LinkedHashMap<>(collection.activeVariables());
+		if (env != null) {
+			values.putAll(env.activeValues()); // the environment overrides collection variables
+		}
+		String title = "Run " + (container == collection ? collection.getName()
+				: collection.getName() + " › " + container.getName())
+				+ (env == null ? " (no environment)" : " in " + env.getName());
+		new RunDialog(tabs.getShell(), title, requests, values, http, id -> {
+			RequestModel saved = collection.findRequest(id);
+			if (saved != null) {
+				openRequest(collection, saved);
+			}
+		}).open();
 	}
 
 	private RequestCollection chooseCollection(String title) {
@@ -777,6 +891,18 @@ public class GetmanView extends ViewPart implements CollectionsPanel.Host, Getma
 	@Override
 	public List<Environment> environments() {
 		return environments;
+	}
+
+	@Override
+	public void environmentsChanged() {
+		refreshEnvironmentCombo();
+		refreshAllVariableHints();
+		scheduleSave();
+	}
+
+	@Override
+	public void selectEnvironment(Environment environment) {
+		selectEnvironment(environment == null ? "" : environment.getId());
 	}
 
 	@Override

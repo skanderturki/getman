@@ -39,6 +39,7 @@ import com.getman.core.json.Json;
 import com.getman.core.json.JsonException;
 import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
+import com.getman.core.model.ExpectedStatus;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
 import com.getman.core.model.RequestModel;
@@ -63,6 +64,7 @@ class RequestTab extends Composite {
 	private final CTabItem paramsTab;
 	private final CTabItem authTab;
 	private final CTabItem headersTab;
+	private final CTabItem checksTab;
 	private final Label bodyError;
 	private final ResponsePanel responsePanel;
 	private CompletableFuture<ResponseModel> inFlight;
@@ -230,6 +232,9 @@ class RequestTab extends Composite {
 		syncBodyControls.run();
 		bodyTab.setControl(bodyArea);
 
+		checksTab = new CTabItem(sections, SWT.NONE);
+		checksTab.setControl(createChecksPage(sections));
+
 		updateSectionTitles();
 		sections.setSelection(model.getBodyType() != BodyType.NONE ? bodyTab : paramsTab);
 
@@ -288,6 +293,34 @@ class RequestTab extends Composite {
 		variableHint.setVisible(show);
 		((GridData) variableHint.getLayoutData()).exclude = !show;
 		variableHint.getParent().layout(true);
+	}
+
+	/** The expected status: shown with each response, and checked when the collection is run. */
+	private Composite createChecksPage(Composite parent) {
+		Composite page = new Composite(parent, SWT.NONE);
+		page.setLayout(new GridLayout(3, false));
+		new Label(page, SWT.NONE).setText("Expected status:");
+		Text expected = new Text(page, SWT.SINGLE | SWT.BORDER);
+		GridData expectedData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+		expectedData.widthHint = 140;
+		expected.setLayoutData(expectedData);
+		expected.setMessage("e.g. 200 or 2xx");
+		expected.setText(model.getExpectedStatus());
+		Label problem = new Label(page, SWT.NONE);
+		problem.setForeground(getDisplay().getSystemColor(SWT.COLOR_DARK_RED));
+		problem.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+		expected.addListener(SWT.Modify, e -> {
+			model.setExpectedStatus(expected.getText());
+			problem.setText(ExpectedStatus.isValid(expected.getText()) ? "" : "Use codes or classes, e.g. 200, 204 or 2xx.");
+			sectionChanged();
+		});
+		Label hint = new Label(page, SWT.WRAP);
+		hint.setText("Status codes or classes separated by commas, e.g. 201 or 200, 204 or 2xx. The response shows "
+				+ "whether the status matched, and Run Collection reports the request as passed or failed.");
+		GridData hintData = new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1);
+		hintData.widthHint = 400;
+		hint.setLayoutData(hintData);
+		return page;
 	}
 
 	/** File chooser for a Binary File body: the path (may use {{variables}}) and a Browse button. */
@@ -358,7 +391,7 @@ class RequestTab extends Composite {
 				}
 				ResponseModel shown = error != null ? ResponseModel.failure(String.valueOf(error.getMessage()), 0)
 						: response;
-				responsePanel.showResponse(shown);
+				responsePanel.showResponse(shown, sentAs.getExpectedStatus());
 				onSent.accept(HistoryEntry.of(sentAs, resolvedUrl, shown, sentAt));
 			});
 		});
@@ -382,6 +415,10 @@ class RequestTab extends Composite {
 		headersTab.setText(withCount("Headers", model.getHeaders().stream().filter(KeyValue::isActive).count()));
 		AuthType auth = model.getAuth().getType();
 		authTab.setText(auth == AuthType.NONE ? "Auth" : "Auth (" + (auth == AuthType.BEARER ? "Bearer" : "Basic") + ")");
+		if (checksTab != null) {
+			String expected = model.getExpectedStatus();
+			checksTab.setText(expected.isEmpty() ? "Checks" : "Checks (" + expected + ")");
+		}
 	}
 
 	private static String withCount(String label, long count) {

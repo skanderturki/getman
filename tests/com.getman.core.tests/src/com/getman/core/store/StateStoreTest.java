@@ -116,8 +116,12 @@ class StateStoreTest {
 		state.getEnvironments().add(prod);
 		state.getEnvironments().add(new Environment("Local"));
 		RequestCollection c = new RequestCollection("orders-api (Claude)");
+		Environment aiEnv = new Environment("Local (AI)");
+		aiEnv.setCreatedByAssistant(true);
+		state.getEnvironments().add(aiEnv);
 		RequestModel byAssistant = new RequestModel();
 		byAssistant.setCreatedByAssistant(true);
+		byAssistant.setExpectedStatus("201");
 		c.put(byAssistant);
 		c.put(new RequestModel());
 		state.getCollections().add(c);
@@ -126,8 +130,13 @@ class StateStoreTest {
 		WorkspaceState loaded = store.load().state();
 		assertTrue(loaded.getEnvironments().get(0).isProduction());
 		assertFalse(loaded.getEnvironments().get(1).isProduction());
+		assertFalse(loaded.getEnvironments().get(1).isCreatedByAssistant());
+		assertTrue(loaded.getEnvironments().get(2).isCreatedByAssistant());
+		assertTrue(loaded.getEnvironments().get(2).copy().isCreatedByAssistant());
 		RequestCollection lc = loaded.getCollections().get(0);
 		assertTrue(lc.findRequest(byAssistant.getId()).isCreatedByAssistant());
+		assertEquals("201", lc.findRequest(byAssistant.getId()).getExpectedStatus());
+		assertEquals("", lc.allRequests().get(1).getExpectedStatus());
 		assertFalse(lc.allRequests().get(1).isCreatedByAssistant());
 	}
 

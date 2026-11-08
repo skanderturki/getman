@@ -21,6 +21,8 @@ public final class RequestModel implements CollectionNode {
 	private String collectionId = "";
 	/** Created by an AI assistant through the MCP server, which may only change or delete such requests. */
 	private boolean createdByAssistant;
+	/** Status codes the response should have, e.g. "201" or "2xx" (see {@link ExpectedStatus}); "" for no check. */
+	private String expectedStatus = "";
 
 	public String getId() {
 		return id;
@@ -100,6 +102,16 @@ public final class RequestModel implements CollectionNode {
 		this.createdByAssistant = createdByAssistant;
 	}
 
+	public String getExpectedStatus() {
+		return expectedStatus;
+	}
+
+	/** Stores the canonical form of {@code expectedStatus}; text that is not valid is stored as written. */
+	public void setExpectedStatus(String expectedStatus) {
+		String normalized = ExpectedStatus.normalize(expectedStatus);
+		this.expectedStatus = normalized != null ? normalized : expectedStatus.trim();
+	}
+
 	/** Live, mutable authorization settings. */
 	public Auth getAuth() {
 		return auth;
@@ -157,7 +169,7 @@ public final class RequestModel implements CollectionNode {
 		return other != null && name.equals(other.name) && method == other.method && url.equals(other.url)
 				&& params.equals(other.params) && headers.equals(other.headers) && bodyType == other.bodyType
 				&& body.equals(other.body) && auth.equals(other.auth) && formFields.equals(other.formFields)
-				&& binaryFile.equals(other.binaryFile);
+				&& binaryFile.equals(other.binaryFile) && expectedStatus.equals(other.expectedStatus);
 	}
 
 	/** Deep copy with a fresh id, no collection link and no assistant marker, used for "Duplicate". */
@@ -176,6 +188,7 @@ public final class RequestModel implements CollectionNode {
 		copy.auth.setPassword(auth.getPassword());
 		formFields.forEach(f -> copy.formFields.add(f.copy()));
 		copy.binaryFile = binaryFile;
+		copy.expectedStatus = expectedStatus;
 		return copy;
 	}
 }

@@ -1,7 +1,7 @@
 # Requests and responses
 
 Each request has its own tab. Create one with **+** in the toolbar. Double-click a tab to rename it, and
-right-click it for **Save to Collection**, **Save As…**, **Rename…**, **Duplicate**, **Copy as cURL**, **Close** and
+right-click it for **Save to Collection**, **Save As…**, **Save All**, **Rename…**, **Duplicate**, **Copy as cURL**, **Close** and
 **Close Others**.
 
 ## Method and URL
@@ -77,6 +77,15 @@ the file itself.
 - **Cancel:** while a request is running, the button becomes **Cancel**.
 - **Variables:** they are filled in from the selected environment and the request's collection just before
   sending. A red line under the URL warns about [unknown variables](environments.md#unknown-variables).
+
+## Checks
+
+The **Checks** tab holds the request's **expected status**: one or more status codes or classes separated by
+commas, for example `201`, `200, 204` or `2xx`. Leave it empty for no check.
+
+- After each send, the response panel shows **✓ expected 201** in green, or **✗ expected 201** in red.
+- [Running the collection](collections.md#running-a-collection) reports the request as **Passed** or **Failed**.
+- The tab's title shows the expected status, for example **Checks (201)**.
 
 ## The response panel
 

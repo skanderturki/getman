@@ -64,6 +64,9 @@ public final class StateCodec {
 			if (e.isProduction()) {
 				em.put("production", true);
 			}
+			if (e.isCreatedByAssistant()) {
+				em.put("createdBy", "assistant");
+			}
 			em.put("variables", kvToList(e.getVariables(), secrets, "env:" + e.getId()));
 			environments.add(em);
 		}
@@ -98,6 +101,7 @@ public final class StateCodec {
 				e.setId(string(em.get("id")));
 				e.setName(string(em.get("name")));
 				e.setProduction(em.get("production") instanceof Boolean b && b);
+				e.setCreatedByAssistant("assistant".equals(em.get("createdBy")));
 				e.getVariables().addAll(kvFromList(em.get("variables"), secrets));
 				state.getEnvironments().add(e);
 			}
@@ -236,6 +240,9 @@ public final class StateCodec {
 			putSecret(am, "password", auth.getPassword(), secrets, secretKey + ":password");
 			m.put("auth", am);
 		}
+		if (!r.getExpectedStatus().isEmpty()) {
+			m.put("expectedStatus", r.getExpectedStatus());
+		}
 		if (r.isInCollection()) {
 			m.put("collectionId", r.getCollectionId());
 		}
@@ -266,6 +273,7 @@ public final class StateCodec {
 			}
 		}
 		r.setBinaryFile(string(m.get("binaryFile")));
+		r.setExpectedStatus(string(m.get("expectedStatus")));
 		r.setCollectionId(string(m.get("collectionId")));
 		r.setCreatedByAssistant("assistant".equals(m.get("createdBy")));
 		if (m.get("auth") instanceof Map<?, ?> am) {

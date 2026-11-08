@@ -26,7 +26,7 @@ Eclipse. There's no account, no cloud sync and no telemetry.
 | Open GetMan | **Window › Show View › Other… › GetMan › GetMan** |
 | New request | **+** in the view toolbar |
 | Send / cancel | **Send** button, `Ctrl+Enter` (`Cmd+Enter` on macOS), or `Enter` in the URL field |
-| Save to a collection | `Ctrl+S` (`Ctrl+Shift+S` = Save As) |
+| Save to a collection | `Ctrl+S`; Save All: `Ctrl+Shift+S` |
 | Import a cURL command | Paste it into the URL field, or **Import cURL Command…** in the toolbar |
 | Rename a tab | Double-click it |
 | Pick an environment | The dropdown at the left of the view toolbar |

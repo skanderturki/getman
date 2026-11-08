@@ -18,8 +18,14 @@ public interface GetmanWorkspace {
 	/** Live list of collections. */
 	List<RequestCollection> collections();
 
-	/** Live list of environments; change them only through the Manage Environments dialog. */
+	/** Live list of environments. After changing it or an environment's variables, call {@link #environmentsChanged}. */
 	List<Environment> environments();
+
+	/** Refreshes the environment selector and the unknown-variable hints, and saves shortly after. */
+	void environmentsChanged();
+
+	/** Selects {@code environment} in the GetMan toolbar ({@code null} for "No Environment"). */
+	void selectEnvironment(Environment environment);
 
 	/** The environment selected in the GetMan toolbar, or {@code null} for "No Environment". */
 	Environment activeEnvironment();

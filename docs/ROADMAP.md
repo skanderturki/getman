@@ -164,8 +164,14 @@ GetMan**, and every request it creates stays in GetMan, to review, edit, re-run 
   edit or delete **only requests it created**.
 - **Approval in Eclipse.** GET requests are sent freely. Any other method on an environment marked
   **Production** shows an approval dialog in Eclipse first ("Claude Code wants to send DELETE … Allow / Deny").
-- **No saved assertions in 0.9.** The assistant judges responses itself. Saved assertions and a test runner that
-  works without AI (for example in CI) are a possible later release.
+- **Test suites (added during 0.9).** Each request can have an **expected status**, and **Run Collection** sends a
+  collection or folder and reports which requests passed or failed. The assistant can build such a suite from the
+  project's code and run it (`run_collection`). Richer assertions and a runner that works without Eclipse (for
+  example in CI) are possible later releases.
+- **Environments created by the assistant (added during 0.9).** The assistant can create environments (marked AI)
+  with values found in the project, such as `baseUrl`, and add variables to the user's environments, but never
+  change existing ones, Production environments or secret values.
+- **Save All (added during 0.9):** `Ctrl+Shift+S` and a toolbar button save every changed tab.
 
 **Step 1: spike (about half a day; nothing ships)**
 - Load the SDK bundles in Eclipse through Tycho, start a minimal server through the JDK HTTP adapter, and connect
@@ -188,10 +194,12 @@ GetMan**, and every request it creates stays in GetMan, to review, edit, re-run 
 | `list_collections` | Collections, folders and request names and ids |
 | `get_request` | One request as written, with `{{variables}}` and no secret values |
 | `list_environments` | Environment names, which one is active, and variable **names** only (never values of secret variables) |
+| `create_environment` / `set_environment_variables` | Create environments and add variables (only change environments the assistant created; never Production or secret values) |
 | `create_request` | Create a request in a collection and folder, creating them if needed (default collection: one per project or task, named by the assistant, e.g. "orders-api (Claude)") |
 | `update_request` / `delete_request` | Only for requests the assistant created |
 | `send_request` | Send a saved request, or an ad-hoc one, in a chosen environment. Returns status, headers, time, size and the body (capped size, secrets redacted, marked as untrusted data) |
 | `import_curl` | Create a request from a cURL command |
+| `run_collection` | Run a collection or folder and report which requests passed or failed their expected status |
 
 **Security**
 - **Off by default:** enabled in Preferences.
@@ -231,7 +239,6 @@ GetMan**, and every request it creates stays in GetMan, to review, edit, re-run 
 - Manual check with Claude Code before release.
 
 **Out of scope (possible later releases)**
-- Saved assertions, variable extraction and chaining, and a collection test runner (also useful in CI without
-  AI).
+- Richer assertions (body, headers, time), variable extraction and chaining, and a command-line runner for CI.
 - OpenAPI import (`import_openapi`), to create a request per endpoint.
 - A standalone MCP server that works without Eclipse running.

@@ -22,9 +22,16 @@ public final class GetmanMcpServer {
 			GetMan is the REST client inside the user's Eclipse IDE. Requests you create are saved in GetMan \
 			collections, where the user can review, edit and re-run them, so prefer saving useful requests over \
 			one-off calls.
-			- Start with list_environments and list_collections.
+			- Start with list_environments and list_collections, and reuse the variable names you find there \
+			(names are case-sensitive).
 			- Write URLs with variables such as {{baseUrl}}, and put tokens and passwords in {{variables}}, never \
 			literal values. GetMan fills them in when sending and hides secret values from you.
+			- If no environment defines what you need, read the project (server port, context path, API prefix) \
+			and use create_environment, e.g. "Local" with baseUrl. Add secret variables with an empty value and \
+			ask the user to fill them in.
+			- To build a test suite for a project: read its code to find every endpoint, create one request per \
+			endpoint (one folder per resource or controller) with an expectedStatus, in an order that works \
+			(create before read, update and delete), then run_collection and report what failed.
 			- Group your requests in one collection per project or task, named after it and you, e.g. \
 			"orders-api (Claude)".
 			- You can change or delete only requests you created.

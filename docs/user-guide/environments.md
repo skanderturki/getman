@@ -29,6 +29,9 @@ An environment is a named set of variables.
   - Edit each environment's variables in a table: name, value, and a checkbox to switch a variable off.
   - **Production:** check it for environments that point at real systems. An AI assistant then needs your
     approval to send anything but GET, HEAD or OPTIONS there (see [AI assistants](ai-assistants.md)).
+  - **(AI):** environments created by an [AI assistant](ai-assistants.md) are marked **(AI)** in the list. The
+    assistant can add variables to them and change their values, but never secret values, and not once you check
+    **Production**. **Duplicate** gives you a copy that is yours.
   - **Cancel** discards your changes.
 - **Select:** choose an environment in the dropdown. *No Environment* means only collection variables apply.
 

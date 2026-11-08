@@ -71,22 +71,40 @@ For example, in VS Code with GitHub Copilot, add this to `.vscode/mcp.json` or y
 | `list_collections` | Lists collections, folders and requests (names, methods, URLs) |
 | `get_request` | Reads one request as written, with its `{{variables}}` |
 | `list_environments` | Lists environments, which one is selected, which are Production, and their variables. Values of secret variables are never shown. |
-| `create_request` | Saves a new request in a collection and folder, creating them if needed |
+| `create_environment` | Creates an environment, such as *Local* with `baseUrl`, from what the assistant finds in your project |
+| `set_environment_variables` | Adds variables to an environment, or changes them in environments the assistant created |
+| `create_request` | Saves a new request in a collection and folder, creating them if needed, optionally with an expected status |
 | `update_request`, `delete_request` | Change or delete a request **the assistant created** |
 | `send_request` | Sends a saved request, or an ad-hoc one, and returns the status, headers, time, size and body |
 | `import_curl` | Creates a request from a cURL command |
+| `run_collection` | Runs a collection or folder and reports which requests passed or failed their expected status |
 
 - **Where requests go:** the assistant names the collection, usually after the project and itself, for example
   *orders-api (Claude)*. New requests appear in the Collections tree right away, marked **AI**.
 - **Variables:** requests are sent with the environment selected in the GetMan toolbar, unless the assistant
   names another one. Unknown variables are reported to the assistant instead of being sent.
-- **History:** requests the assistant sends appear in the History tab, marked **AI assistant**.
+- **Environments:** if no environment has what it needs, the assistant can read your project (server port,
+  API prefix) and create one, for example *Local* with `baseUrl`. It is marked **(AI)** in Manage Environments,
+  and selected if none was. For tokens and passwords it adds an empty secret variable and asks you to fill it in.
+- **History:** requests the assistant sends appear in the History tab, marked **AI assistant**. Collection runs
+  are not added to History.
 - **The GetMan view opens by itself** if it was closed when the assistant needs it.
+
+## Build a test suite
+
+Ask, for example: *"Use GetMan to find every API endpoint in this project and build a test suite: one request per
+endpoint with its expected status, then run it and tell me what fails."*
+
+The assistant reads your code, creates an environment if needed, saves one request per endpoint with an
+**expected status**, and runs the collection. The suite stays in GetMan: you can re-run it yourself at any time with
+right-click › [Run Collection…](collections.md#running-a-collection), without the assistant.
 
 ## What the assistant cannot do
 
 - **Change your requests.** It can read and send any request, but it can change or delete only requests it
   created. To keep an assistant's request safe from further changes, use **Save As** on it: the copy is yours.
+- **Change your environments.** In environments you created, it can only add variables that do not exist yet. It
+  cannot change environments marked Production, and it can never set or change the value of a secret variable.
 - **See secret values.** Values of secret variables, auth tokens and passwords, and credential headers
   (`Authorization`, `Cookie`, API keys) are replaced with `[secret]` in everything returned, including response
   bodies that echo them. Values shorter than 4 characters are not searched for.
@@ -99,7 +117,8 @@ For example, in VS Code with GitHub Copilot, add this to `.vscode/mcp.json` or y
 In **Manage Environments**, check **Production** for environments that point at real systems.
 
 When the assistant sends anything other than GET, HEAD or OPTIONS in a Production environment, GetMan shows a
-dialog in Eclipse with the method, the URL and the start of the body. The request is sent only if you click
+dialog in Eclipse with the method, the URL and the start of the body. When it runs a collection there that contains
+such requests, the dialog lists them, and the whole run waits for your answer. The request is sent only if you click
 **Allow**. **Deny** tells the assistant the request was refused.
 
 The assistant waits while the dialog is open, so switch to Eclipse when it says it is waiting for approval.

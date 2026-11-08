@@ -83,6 +83,9 @@ class CollectionsPanel extends Composite {
 
 		void importEnvironment(Environment environment);
 
+		/** Sends every saved request in {@code container} (a collection or a folder of {@code collection}). */
+		void run(RequestCollection collection, NodeContainer container);
+
 		void showStatus(String message);
 	}
 
@@ -554,6 +557,8 @@ class CollectionsPanel extends Composite {
 				new MenuItem(menu, SWT.SEPARATOR);
 				menuItem(menu, "Delete\tDel", this::deleteSelection);
 			} else if (element instanceof Folder f) {
+				menuItem(menu, "Run Folder…", () -> host.run(collectionOf(f), f));
+				new MenuItem(menu, SWT.SEPARATOR);
 				menuItem(menu, "New Request", () -> newRequest(f));
 				menuItem(menu, "New Folder…", () -> newFolder(f));
 				new MenuItem(menu, SWT.SEPARATOR);
@@ -564,6 +569,8 @@ class CollectionsPanel extends Composite {
 				new MenuItem(menu, SWT.SEPARATOR);
 				menuItem(menu, "Delete\tDel", this::deleteSelection);
 			} else if (element instanceof RequestCollection c) {
+				menuItem(menu, "Run Collection…", () -> host.run(c, c));
+				new MenuItem(menu, SWT.SEPARATOR);
 				menuItem(menu, "New Request", () -> newRequest(c));
 				menuItem(menu, "New Folder…", () -> newFolder(c));
 				new MenuItem(menu, SWT.SEPARATOR);

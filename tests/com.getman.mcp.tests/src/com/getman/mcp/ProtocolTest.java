@@ -75,7 +75,7 @@ class ProtocolTest {
 		McpSchema.InitializeResult init = client.initialize();
 		assertEquals("getman", init.serverInfo().name());
 		assertTrue(init.instructions().contains("{{baseUrl}}"));
-		assertEquals(8, client.listTools().tools().size());
+		assertEquals(11, client.listTools().tools().size());
 
 		CallToolResult created = client.callTool(new CallToolRequest("create_request", Map.of("collection",
 				"demo (test)", "name", "Ping", "url", "{{baseUrl}}/ping")));

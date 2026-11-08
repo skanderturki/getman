@@ -12,6 +12,8 @@ public final class Environment {
 	private String name = "New Environment";
 	private final List<KeyValue> variables = new ArrayList<>();
 	private boolean production;
+	/** Created by an AI assistant through the MCP server, which may change only such environments' variables. */
+	private boolean createdByAssistant;
 
 	public Environment() {
 	}
@@ -48,6 +50,24 @@ public final class Environment {
 		this.production = production;
 	}
 
+	public boolean isCreatedByAssistant() {
+		return createdByAssistant;
+	}
+
+	public void setCreatedByAssistant(boolean createdByAssistant) {
+		this.createdByAssistant = createdByAssistant;
+	}
+
+	/** The variable named {@code name} (ignoring surrounding spaces), or {@code null}. */
+	public KeyValue variable(String name) {
+		for (KeyValue v : variables) {
+			if (v.getKey().trim().equals(name.trim())) {
+				return v;
+			}
+		}
+		return null;
+	}
+
 	/** Live, mutable list of variables in display order. */
 	public List<KeyValue> getVariables() {
 		return variables;
@@ -64,11 +84,12 @@ public final class Environment {
 		return values;
 	}
 
-	/** Deep copy with the same id (for editing in a dialog without touching the live object). */
+	/** Deep copy with the same id and assistant marker (for editing in a dialog without touching the live object). */
 	public Environment copy() {
 		Environment c = new Environment(name);
 		c.id = id;
 		c.production = production;
+		c.createdByAssistant = createdByAssistant;
 		variables.forEach(v -> c.variables.add(v.copy()));
 		return c;
 	}

@@ -24,6 +24,7 @@ import org.eclipse.swt.widgets.Text;
 
 import com.getman.core.json.Json;
 import com.getman.core.json.JsonException;
+import com.getman.core.model.ExpectedStatus;
 import com.getman.core.model.ResponseModel;
 
 /** Shows one response: status line, time, size, and Body / Headers tabs. */
@@ -39,6 +40,7 @@ public class ResponsePanel extends Composite {
 
 	private final Label statusLabel;
 	private final Label metaLabel;
+	private final Label checkLabel;
 	private final Button prettyButton;
 	private final Button copyButton;
 	private final CTabItem headersTab;
@@ -55,13 +57,14 @@ public class ResponsePanel extends Composite {
 
 		Composite header = new Composite(this, SWT.NONE);
 		header.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-		GridLayout headerLayout = new GridLayout(4, false);
+		GridLayout headerLayout = new GridLayout(5, false);
 		headerLayout.marginWidth = 2;
 		headerLayout.marginHeight = 2;
 		header.setLayout(headerLayout);
 
 		statusLabel = new Label(header, SWT.NONE);
 		statusLabel.setFont(JFaceResources.getBannerFont());
+		checkLabel = new Label(header, SWT.NONE);
 		metaLabel = new Label(header, SWT.NONE);
 		metaLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 		prettyButton = new Button(header, SWT.CHECK);
@@ -125,6 +128,11 @@ public class ResponsePanel extends Composite {
 	}
 
 	public void showResponse(ResponseModel r) {
+		showResponse(r, "");
+	}
+
+	/** Shows {@code r} and, when {@code expectedStatus} is set, whether its status matched. */
+	public void showResponse(ResponseModel r, String expectedStatus) {
 		this.response = r;
 		headersTable.removeAll();
 		if (r.isError()) {
@@ -145,6 +153,12 @@ public class ResponsePanel extends Composite {
 			item.setText(new String[] { h.getKey(), h.getValue() });
 		}
 		headersTab.setText("Headers (" + r.getHeaders().size() + ")");
+		if (expectedStatus != null && !expectedStatus.isEmpty() && ExpectedStatus.isValid(expectedStatus)) {
+			boolean passed = ExpectedStatus.matches(expectedStatus, r.getStatusCode());
+			checkLabel.setText((passed ? "✓" : "✗") + " expected " + expectedStatus);
+			checkLabel.setForeground(passed ? GREEN : RED);
+			checkLabel.setToolTipText("Expected status, set in the request's Checks tab");
+		}
 		renderBody();
 		copyButton.setEnabled(true);
 		layout(true, true);
@@ -179,6 +193,8 @@ public class ResponsePanel extends Composite {
 	}
 
 	private void setStatus(String text, Color color) {
+		checkLabel.setText("");
+		checkLabel.setToolTipText(null);
 		statusLabel.setText(text);
 		statusLabel.setForeground(color);
 		metaLabel.setToolTipText(null);

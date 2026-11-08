@@ -45,6 +45,18 @@ final class Fakes {
 			return active;
 		}
 
+		int environmentChanges;
+
+		@Override
+		public void environmentsChanged() {
+			environmentChanges++;
+		}
+
+		@Override
+		public void selectEnvironment(Environment environment) {
+			active = environment;
+		}
+
 		@Override
 		public HttpService http() {
 			return http;
@@ -88,7 +100,10 @@ final class Fakes {
 		}
 	}
 
-	/** Answers every request with "METHOD /path" and the Authorization header it received, as JSON. */
+	/**
+	 * Answers every request with "METHOD /path" and the Authorization header it received, as JSON; with status NNN
+	 * for paths ending in /status/NNN, 200 otherwise.
+	 */
 	static final class EchoServer implements AutoCloseable {
 		final HttpServer server;
 		final AtomicInteger requests = new AtomicInteger();
@@ -101,8 +116,10 @@ final class Fakes {
 				String body = "{\"saw\":\"" + exchange.getRequestMethod() + " " + exchange.getRequestURI()
 						+ "\",\"authorization\":\"" + auth + "\"}";
 				byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+				String path = exchange.getRequestURI().getPath();
+				int status = path.matches(".*/status/[0-9]{3}") ? Integer.parseInt(path.substring(path.length() - 3)) : 200;
 				exchange.getResponseHeaders().set("Content-Type", "application/json");
-				exchange.sendResponseHeaders(200, bytes.length);
+				exchange.sendResponseHeaders(status, bytes.length);
 				try (OutputStream out = exchange.getResponseBody()) {
 					out.write(bytes);
 				}

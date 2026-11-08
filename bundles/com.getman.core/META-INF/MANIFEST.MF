@@ -12,6 +12,7 @@ Export-Package: com.getman.core.curl,
  com.getman.core.json,
  com.getman.core.model,
  com.getman.core.postman,
+ com.getman.core.run,
  com.getman.core.store,
  com.getman.core.variables
 Import-Package: javax.net.ssl

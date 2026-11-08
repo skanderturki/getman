@@ -94,8 +94,9 @@ class GetmanToolsTest {
 
 	@Test
 	void offersTheRoadmapTools() {
-		assertEquals(List.of("list_collections", "get_request", "list_environments", "create_request",
-				"update_request", "delete_request", "send_request", "import_curl"), List.copyOf(tools.keySet()));
+		assertEquals(List.of("list_collections", "get_request", "list_environments", "create_environment",
+				"set_environment_variables", "create_request", "update_request", "delete_request", "send_request",
+				"import_curl", "run_collection"), List.copyOf(tools.keySet()));
 	}
 
 	@Test
@@ -237,5 +238,102 @@ class GetmanToolsTest {
 		assertTrue(failure("get_request", Map.of()).contains("id is required"));
 		assertTrue(failure("get_request", Map.of("id", "nope")).contains("no saved request"));
 		assertTrue(failure("send_request", Map.of()).contains("url"));
+	}
+
+	@Test
+	void createEnvironmentMarksItAndSelectsItWhenNoneIs() throws Exception {
+		host.workspace.active = null;
+		Map<?, ?> created = ok("create_environment", Map.of("name", "Dev", "variables", List.of(
+				Map.of("name", "baseUrl", "value", "http://localhost:8080/api"),
+				Map.of("name", "apiKey", "secret", true))));
+		Environment dev = host.workspace.environments.get(2);
+		assertTrue(dev.isCreatedByAssistant());
+		assertFalse(dev.isProduction());
+		assertEquals(dev, host.workspace.active);
+		assertEquals(true, created.get("selected"));
+		assertEquals("http://localhost:8080/api", dev.variable("baseUrl").getValue());
+		assertTrue(dev.variable("apiKey").isSecret());
+		assertEquals("", dev.variable("apiKey").getValue());
+		assertEquals(1, host.workspace.environmentChanges);
+
+		assertTrue(failure("create_environment", Map.of("name", "local")).contains("already an environment"));
+		assertTrue(failure("create_environment", Map.of("name", "X", "variables",
+				List.of(Map.of("name", "token", "value", "abc", "secret", true)))).contains("secret"));
+		assertTrue(failure("create_environment", Map.of("name", "X", "variables",
+				List.of(Map.of("name", "bad name", "value", "1")))).contains("not a valid variable name"));
+		assertEquals(3, host.workspace.environments.size(), "failed calls create nothing");
+	}
+
+	@Test
+	void theAssistantOnlyAddsVariablesToUserEnvironmentsAndNeverTouchesProduction() throws Exception {
+		ok("set_environment_variables", Map.of("environment", "Local", "variables",
+				List.of(Map.of("name", "apiPrefix", "value", "/api/v1"))));
+		assertEquals("/api/v1", local.variable("apiPrefix").getValue());
+		assertTrue(failure("set_environment_variables", Map.of("environment", "Local", "variables",
+				List.of(Map.of("name", "baseUrl", "value", "http://evil")))).contains("created by the user"));
+		assertEquals(echo.baseUrl(), local.variable("baseUrl").getValue());
+		assertTrue(failure("set_environment_variables", Map.of("environment", "Production", "variables",
+				List.of(Map.of("name", "new", "value", "1")))).contains("Production"));
+		assertNull(prod.variable("new"));
+
+		ok("create_environment", Map.of("name", "Dev", "variables", List.of(Map.of("name", "baseUrl", "value", "a"),
+				Map.of("name", "token", "secret", true))));
+		ok("set_environment_variables", Map.of("environment", "dev", "variables",
+				List.of(Map.of("name", "baseUrl", "value", "b"))));
+		Environment dev = host.workspace.environments.get(2);
+		assertEquals("b", dev.variable("baseUrl").getValue(), "its own environments can be changed");
+		assertTrue(failure("set_environment_variables", Map.of("environment", "Dev", "variables",
+				List.of(Map.of("name", "token", "value", "")))).contains("secret"));
+		assertTrue(mapper.writeValueAsString(ok("list_environments", Map.of())).contains("\"createdByAssistant\":true"));
+	}
+
+	@Test
+	void expectedStatusIsValidatedStoredAndShown() throws Exception {
+		assertTrue(failure("create_request", Map.of("collection", "c", "name", "n", "url", "http://a",
+				"expectedStatus", "ok")).contains("Expected status"));
+		String id = (String) ok("create_request", Map.of("collection", "c", "name", "n", "url", "http://a",
+				"expectedStatus", "2XX")).get("id");
+		assertEquals("2xx", host.workspace.collections.get(1).findRequest(id).getExpectedStatus());
+		assertEquals("2xx", ok("get_request", Map.of("id", id)).get("expectedStatus"));
+		ok("update_request", Map.of("id", id, "expectedStatus", ""));
+		assertEquals("", host.workspace.collections.get(1).findRequest(id).getExpectedStatus());
+	}
+
+	@Test
+	void runCollectionChecksEveryRequest() throws Exception {
+		ok("create_request", Map.of("collection", "suite", "folder", "a", "name", "ok", "url",
+				"{{baseUrl}}/status/201", "expectedStatus", "201"));
+		ok("create_request", Map.of("collection", "suite", "folder", "a", "name", "wrong", "url",
+				"{{baseUrl}}/status/404", "expectedStatus", "200", "auth", Map.of("type", "BEARER", "token", "{{token}}")));
+		ok("create_request", Map.of("collection", "suite", "folder", "b", "name", "unchecked", "url", "{{baseUrl}}/x"));
+		Map<?, ?> run = ok("run_collection", Map.of("collection", "suite"));
+		assertEquals("1 passed, 1 failed, 1 not checked", run.get("summary"));
+		List<?> results = (List<?>) run.get("results");
+		assertEquals(List.of("passed", "failed", "not_checked"),
+				results.stream().map(r -> ((Map<?, ?>) r).get("outcome")).toList());
+		Map<?, ?> failed = (Map<?, ?>) results.get(1);
+		assertEquals(404, failed.get("status"));
+		assertTrue(((String) failed.get("body")).contains(Redactor.MASK), "the echoed token is hidden");
+		assertFalse(mapper.writeValueAsString(run).contains(SECRET));
+		assertEquals(3, echo.requests.get());
+		assertTrue(host.workspace.history.isEmpty(), "runs are not added to History");
+
+		assertEquals("1 passed", ok("run_collection", Map.of("collection", "suite", "folder", "a/")).get("summary")
+				.toString().substring(0, 8));
+		assertTrue(failure("run_collection", Map.of("collection", "suite", "folder", "nope")).contains("no folder"));
+	}
+
+	@Test
+	void runningWritesInProductionNeedsApproval() throws Exception {
+		ok("create_request", Map.of("collection", "suite", "name", "read", "url", "{{baseUrl}}/a"));
+		ok("create_request", Map.of("collection", "suite", "name", "remove", "method", "DELETE", "url", "{{baseUrl}}/a"));
+		host.allow = false;
+		assertTrue(failure("run_collection", Map.of("collection", "suite", "environment", "Production"))
+				.contains("denied"));
+		assertEquals(0, echo.requests.get(), "a denied run sends nothing");
+		assertTrue(host.asked.get(0).contains("DELETE remove"));
+		ok("run_collection", Map.of("collection", "suite"));
+		assertEquals(1, host.asked.size(), "Local needs no approval");
+		assertEquals(2, echo.requests.get());
 	}
 }
