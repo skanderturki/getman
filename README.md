@@ -62,7 +62,8 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
   environment wait for your approval. See [AI assistants](docs/user-guide/ai-assistants.md).
 - **Checks and Run Collection** – give a request an **expected status** (`201`, `200, 204`, `2xx`) and see ✓ or ✗
   after each send. Right-click a collection or folder › **Run Collection…** to send every request and see which
-  passed or failed.
+  passed or failed. Each run is kept in **History** as one group, and can be exported as an HTML report, CSV or
+  JUnit XML (for CI servers).
 - **Request tabs** – method, URL, query params, headers and body: JSON, text, XML, URL-encoded form,
   **multipart form data** (text fields and file uploads) or a **binary file**. Double-click a tab to
   rename it; right-click for Duplicate, Copy as cURL, Close, Close Others.
