@@ -47,10 +47,11 @@ If the status says the port is in use (for example by a second Eclipse with GetM
 
 GitHub Copilot for Eclipse (Eclipse 2024-09 or later) can use GetMan from its chat, in the same Eclipse.
 
-1. In **Preferences › GetMan › MCP Server**, click **Show** and copy the token.
+1. In **Preferences › GetMan › MCP Server**, click **Copy Copilot (Eclipse) Config**.
 2. Open Copilot's MCP settings: click the Copilot icon in the status bar, choose **Edit preferences**, then
    **GitHub Copilot › MCP**. (Or open Copilot Chat and click the **Configure Tools…** icon.)
-3. Under **Server Configurations**, add `getman` next to any servers already there, with your token:
+3. Under **Server Configurations**, paste it. If servers are already listed there, add only the `getman` entry
+   next to them. It looks like this, with your token:
 
    ```json
    {
@@ -72,8 +73,9 @@ With Copilot Business or Enterprise, your organization must allow **MCP servers 
 
 ## Connect GitHub Copilot in VS Code
 
-To use GetMan from Copilot in VS Code while Eclipse runs, add this to `.vscode/mcp.json` in your project, or to
-your user `mcp.json` (**MCP: Open User Configuration** in the Command Palette):
+To use GetMan from Copilot in VS Code while Eclipse runs, click **Copy VS Code Config** on the preference page and
+paste it in `.vscode/mcp.json` in your project, or in your user `mcp.json` (**MCP: Open User Configuration** in
+the Command Palette). If the file already has servers, add only the `getman` entry:
 
 ```json
 {
@@ -93,7 +95,8 @@ a `.vscode/mcp.json` that contains your token.
 ## Connect Codex
 
 The Codex CLI and the Codex IDE extension share one settings file, `~/.codex/config.toml`
-(`C:\Users\<you>\.codex\config.toml` on Windows). Add:
+(`C:\Users\<you>\.codex\config.toml` on Windows). Click **Copy Codex Config** on the preference page and paste it
+at the end of that file (create it if needed):
 
 ```toml
 [mcp_servers.getman]

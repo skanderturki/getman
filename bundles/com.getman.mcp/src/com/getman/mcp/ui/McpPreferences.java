@@ -68,6 +68,40 @@ public final class McpPreferences {
 				+ " --header \"Authorization: Bearer " + token + "\"";
 	}
 
+	/** The server entry for GitHub Copilot in Eclipse (Preferences › GitHub Copilot › MCP). */
+	static String copilotEclipseConfig(int port, String token) {
+		return "{\n" //
+				+ "  \"servers\": {\n" //
+				+ "    \"" + SERVER_NAME + "\": {\n" //
+				+ "      \"url\": \"" + url(port) + "\",\n" //
+				+ "      \"requestInit\": {\n" //
+				+ "        \"headers\": { \"Authorization\": \"Bearer " + token + "\" }\n" //
+				+ "      }\n" //
+				+ "    }\n" //
+				+ "  }\n" //
+				+ "}\n";
+	}
+
+	/** The server entry for GitHub Copilot in VS Code ({@code mcp.json}). */
+	static String vsCodeConfig(int port, String token) {
+		return "{\n" //
+				+ "  \"servers\": {\n" //
+				+ "    \"" + SERVER_NAME + "\": {\n" //
+				+ "      \"type\": \"http\",\n" //
+				+ "      \"url\": \"" + url(port) + "\",\n" //
+				+ "      \"headers\": { \"Authorization\": \"Bearer " + token + "\" }\n" //
+				+ "    }\n" //
+				+ "  }\n" //
+				+ "}\n";
+	}
+
+	/** The server table for Codex ({@code ~/.codex/config.toml}, shared by the CLI and the IDE extension). */
+	static String codexConfig(int port, String token) {
+		return "[mcp_servers." + SERVER_NAME + "]\n" //
+				+ "url = \"" + url(port) + "\"\n" //
+				+ "http_headers = { \"Authorization\" = \"Bearer " + token + "\" }\n";
+	}
+
 	private static void flush() {
 		try {
 			node().flush();
