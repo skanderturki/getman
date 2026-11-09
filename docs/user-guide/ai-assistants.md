@@ -1,7 +1,7 @@
 # AI assistants (MCP)
 
 Code in Eclipse with GetMan open, and let your AI coding assistant test your API **through GetMan**. Claude Code,
-GitHub Copilot and other assistants that support the Model Context Protocol (MCP) can create requests, send
+GitHub Copilot, Codex and other assistants that support the Model Context Protocol (MCP) can create requests, send
 them and read the responses. Every request the assistant creates is saved in a GetMan collection, so you can
 review, edit, re-run and export it afterwards.
 
@@ -40,17 +40,40 @@ If the status says the port is in use (for example by a second Eclipse with GetM
 
 3. Start Claude Code (or run `/mcp` in a running session) and check that **getman** is connected.
 
-`--scope user` makes GetMan available in all your projects. Then just ask, for example: *"Use GetMan to create
-requests for the endpoints in OrderController and test them against Local."*
+`--scope user` makes GetMan available in all your projects. To remove it later, run
+`claude mcp remove getman --scope user`.
 
-## Connect other assistants
+## Connect GitHub Copilot in Eclipse
 
-Add an MCP server of type **HTTP** (also called *streamable HTTP*) with:
+GitHub Copilot for Eclipse (Eclipse 2024-09 or later) can use GetMan from its chat, in the same Eclipse.
 
-- **URL:** `http://127.0.0.1:47123/mcp` (**Copy URL** on the preference page)
-- **Header:** `Authorization: Bearer <token>` (click **Show** on the preference page to see the token)
+1. In **Preferences › GetMan › MCP Server**, click **Show** and copy the token.
+2. Open Copilot's MCP settings: click the Copilot icon in the status bar, choose **Edit preferences**, then
+   **GitHub Copilot › MCP**. (Or open Copilot Chat and click the **Configure Tools…** icon.)
+3. Under **Server Configurations**, add `getman` next to any servers already there, with your token:
 
-For example, in VS Code with GitHub Copilot, add this to `.vscode/mcp.json` or your user `mcp.json`:
+   ```json
+   {
+     "servers": {
+       "getman": {
+         "url": "http://127.0.0.1:47123/mcp",
+         "requestInit": {
+           "headers": { "Authorization": "Bearer <token>" }
+         }
+       }
+     }
+   }
+   ```
+
+4. Click **Apply**. In Copilot Chat, click the tools icon and check that the GetMan tools are listed. If they do
+   not appear, switch the chat to **Agent** mode.
+
+With Copilot Business or Enterprise, your organization must allow **MCP servers in Copilot**.
+
+## Connect GitHub Copilot in VS Code
+
+To use GetMan from Copilot in VS Code while Eclipse runs, add this to `.vscode/mcp.json` in your project, or to
+your user `mcp.json` (**MCP: Open User Configuration** in the Command Palette):
 
 ```json
 {
@@ -63,6 +86,48 @@ For example, in VS Code with GitHub Copilot, add this to `.vscode/mcp.json` or y
   }
 }
 ```
+
+Open Copilot Chat in **Agent** mode and check that the GetMan tools are listed under the tools icon. Do not commit
+a `.vscode/mcp.json` that contains your token.
+
+## Connect Codex
+
+The Codex CLI and the Codex IDE extension share one settings file, `~/.codex/config.toml`
+(`C:\Users\<you>\.codex\config.toml` on Windows). Add:
+
+```toml
+[mcp_servers.getman]
+url = "http://127.0.0.1:47123/mcp"
+http_headers = { "Authorization" = "Bearer <token>" }
+```
+
+Run `codex mcp list` to check that **getman** is listed, or type `/mcp` in a Codex session.
+
+To keep the token out of the file, put it in an environment variable instead, for example `GETMAN_MCP_TOKEN`
+(on Windows: `setx GETMAN_MCP_TOKEN "<token>"`, then open a new terminal), and use:
+
+```toml
+[mcp_servers.getman]
+url = "http://127.0.0.1:47123/mcp"
+bearer_token_env_var = "GETMAN_MCP_TOKEN"
+```
+
+## Connect other assistants
+
+Any assistant that supports MCP servers over **HTTP** (also called *streamable HTTP*) can connect. Add a server
+named `getman` with:
+
+- **URL:** `http://127.0.0.1:47123/mcp` (**Copy URL** on the preference page)
+- **Header:** `Authorization: Bearer <token>` (click **Show** on the preference page to see the token)
+
+Assistants that can only start local programs (*stdio* servers) cannot connect directly.
+
+## Using it
+
+Once connected, every assistant works the same way. Ask, for example: *"Use GetMan to create requests for the
+endpoints in OrderController and test them against Local."*
+
+If you change the port or click **Regenerate**, update the URL or token in each assistant you set up.
 
 ## What the assistant can do
 
@@ -137,6 +202,8 @@ The assistant waits while the dialog is open, so switch to Eclipse when it says 
 
 - **The assistant says it cannot connect:** check that Eclipse is running and the preference page says
   *Running*. Check the port and token in the assistant's setup; after **Regenerate**, set it up again.
+- **Copilot or Codex lists no GetMan tools:** check that the server entry is valid JSON or TOML, then restart the
+  chat or the assistant. In Copilot, use **Agent** mode.
 - **"Could not start on port 47123":** another program uses the port. Choose another port, then update the URL in
   your assistant.
 - **The assistant waits for a long time:** look for the approval dialog in Eclipse.

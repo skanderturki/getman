@@ -56,7 +56,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 ## Features (0.9)
 
 - **AI coding assistants (MCP), optional** – install *GetMan MCP Server (optional)* and connect Claude Code,
-  GitHub Copilot or any other MCP client. The assistant reads your project, creates requests and environments in
+  GitHub Copilot, Codex or any other MCP client. The assistant reads your project, creates requests and environments in
   GetMan, sends them and can build a whole **test suite** of your API. Its requests stay in GetMan to review and
   re-run; it writes `{{token}}` and never sees secret values; sends that may change data in a **Production**
   environment wait for your approval. See [AI assistants](docs/user-guide/ai-assistants.md).
@@ -104,7 +104,7 @@ Requires Eclipse 2024-03 (4.31) or newer and Java 17+.
 
 ## Roadmap
 
-Planned releases 0.4 to 0.9 are done; 0.9 added the optional MCP server for AI coding assistants. See
+Planned releases 0.4 to 0.9 are done; 0.9 added the optional MCP server for AI coding assistants, with setup guides for Claude Code, GitHub Copilot and Codex. See
 [docs/ROADMAP.md](docs/ROADMAP.md) for what came with each release and ideas for later (response search, save response to file, cookie jar, scripts). Suggestions are welcome as
 [GitHub issues](https://github.com/skanderturki/getman/issues).
 

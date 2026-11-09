@@ -1,7 +1,7 @@
 # GetMan roadmap
 
-Status: 0.4.0 to 0.9.1 are released (the user guide was added in 0.7.0, the MCP server for AI coding assistants
-in 0.9.0, run results in History and export in 0.9.1). GetMan is available on the
+Status: 0.4.0 to 0.9.2 are released (the user guide was added in 0.7.0, the MCP server for AI coding assistants
+in 0.9.0, run results in History and export in 0.9.1, setup guides for Copilot and Codex in 0.9.2). GetMan is available on the
 [Eclipse Marketplace](https://marketplace.eclipse.org/content/getman).
 
 Planned work after 0.3.0, in release order. Each release is shippable on its own: merged to `main`, tagged,
@@ -16,6 +16,7 @@ published to the update site, and announced in the GitHub release notes.
 | **0.8.0** | Secrets in Eclipse secure storage | Tokens, passwords and secret variables out of the plain-text state file |
 | **0.9.0** | MCP server for AI coding assistants (optional feature) | Claude Code, Copilot and other MCP clients create and send requests through GetMan; the requests stay in GetMan and secrets never reach the model |
 | **0.9.1** | Run results kept in History, export to HTML, CSV and JUnit XML | Test suites are only useful if their results can be found, compared and shared |
+| **0.9.2** | Setup guides for GitHub Copilot (Eclipse, VS Code) and Codex | Users of assistants other than Claude Code had no step-by-step setup |
 | Later | Response search, save response to file, image preview, cookie jar, scripts and tests | |
 
 Validate the order against demand: open one GitHub issue per release theme and invite 👍 votes.
@@ -256,3 +257,13 @@ GetMan**, and every request it creates stays in GetMan, to review, edit, re-run 
   at most 100 in all, in `runs.json` next to `history.json`. Turning history off also stops keeping runs.
 - OpenAPI import (`import_openapi`), to create a request per endpoint.
 - A standalone MCP server that works without Eclipse running.
+
+## 0.9.2: Setup guides for other assistants
+
+**Goal:** connecting an assistant other than Claude Code is as easy to follow as the Claude Code button.
+
+- User guide, *AI assistants (MCP)*: step-by-step setup for **GitHub Copilot in Eclipse** (Copilot's MCP preferences,
+  `requestInit.headers`), **GitHub Copilot in VS Code** (`mcp.json`) and **Codex** (CLI and IDE extension,
+  `~/.codex/config.toml`, with the token in the file or in an environment variable), plus how to remove GetMan
+  from Claude Code.
+- No change to GetMan's behaviour.
