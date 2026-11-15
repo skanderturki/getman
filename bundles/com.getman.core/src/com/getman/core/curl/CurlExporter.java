@@ -55,7 +55,7 @@ public final class CurlExporter {
 		if (request.hasBody() && type == BodyType.BINARY) {
 			sb.append(" \\\n  --data-binary ").append(quote("@" + request.getBinaryFile()));
 		} else if (request.hasBody()) {
-			sb.append(" \\\n  --data-raw ").append(quote(request.getBody()));
+			sb.append(" \\\n  --data-raw ").append(quote(request.bodyText()));
 		}
 		return sb.toString();
 	}

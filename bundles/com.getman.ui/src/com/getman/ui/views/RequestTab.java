@@ -39,6 +39,7 @@ import com.getman.core.json.Json;
 import com.getman.core.json.JsonException;
 import com.getman.core.model.AuthType;
 import com.getman.core.model.BodyType;
+import com.getman.core.model.FormUrlEncoded;
 import com.getman.core.model.ExpectedStatus;
 import com.getman.core.model.HttpMethod;
 import com.getman.core.model.KeyValue;
@@ -190,7 +191,7 @@ class RequestTab extends Composite {
 		formatButton.setText("Format JSON");
 		bodyError = new Label(bodyArea, SWT.NONE);
 		bodyError.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-		// One editor per kind of body, stacked: text, multipart form fields, or a binary file.
+		// One editor per kind of body, stacked: text, URL-encoded fields, multipart form fields, or a binary file.
 		Composite bodyStack = new Composite(bodyArea, SWT.NONE);
 		bodyStack.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
 		StackLayout bodyStackLayout = new StackLayout();
@@ -198,6 +199,7 @@ class RequestTab extends Composite {
 		Text bodyText = new Text(bodyStack, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL);
 		bodyText.setFont(JFaceResources.getTextFont());
 		bodyText.setText(model.getBody());
+		KeyValueTable urlEncodedTable = new KeyValueTable(bodyStack, model.getUrlEncodedFields(), "Field", onChange);
 		FormDataTable formTable = new FormDataTable(bodyStack, model.getFormFields(), onChange);
 		Composite binaryPage = createBinaryPage(bodyStack);
 		bodyText.addListener(SWT.Modify, e -> {
@@ -210,14 +212,20 @@ class RequestTab extends Composite {
 			boolean hasBody = type != BodyType.NONE;
 			bodyText.setEnabled(hasBody);
 			formatButton.setEnabled(type == BodyType.JSON);
-			formatButton.setVisible(type.isText() || type == BodyType.NONE);
+			formatButton.setVisible((type.isText() && type != BodyType.FORM) || type == BodyType.NONE);
 			bodyText.setMessage(hasBody ? "" : "Choose a body type to send a body.");
-			bodyStackLayout.topControl = type == BodyType.MULTIPART ? formTable
-					: type == BodyType.BINARY ? binaryPage : bodyText;
+			bodyStackLayout.topControl = type == BodyType.FORM ? urlEncodedTable
+					: type == BodyType.MULTIPART ? formTable : type == BodyType.BINARY ? binaryPage : bodyText;
 			bodyStack.layout();
 		};
 		bodyTypeCombo.addListener(SWT.Selection, e -> {
 			model.setBodyType(BodyType.values()[bodyTypeCombo.getSelectionIndex()]);
+			if (model.getBodyType() == BodyType.FORM && model.getUrlEncodedFields().isEmpty()
+					&& !model.getBody().isBlank()) {
+				// Text typed as a=1&b=2 before choosing the form type becomes rows; the text itself is kept.
+				model.getUrlEncodedFields().addAll(FormUrlEncoded.parse(model.getBody()));
+				urlEncodedTable.refresh();
+			}
 			syncBodyControls.run();
 			onChange.run();
 		});

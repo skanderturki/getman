@@ -73,6 +73,7 @@ public final class VariableResolver {
 		resolveRows(r.getParams());
 		resolveRows(r.getHeaders());
 		r.setBody(resolve(r.getBody()));
+		resolveRows(r.getUrlEncodedFields());
 		for (FormField f : r.getFormFields()) {
 			f.setKey(resolve(f.getKey()));
 			f.setValue(resolve(f.getValue()));
@@ -107,6 +108,10 @@ public final class VariableResolver {
 		if (request.hasBody()) {
 			switch (request.getBodyType()) {
 			case MULTIPART -> request.getFormFields().stream().filter(FormField::isActive).forEach(f -> {
+				resolver.resolve(f.getKey());
+				resolver.resolve(f.getValue());
+			});
+			case FORM -> request.getUrlEncodedFields().stream().filter(KeyValue::isActive).forEach(f -> {
 				resolver.resolve(f.getKey());
 				resolver.resolve(f.getValue());
 			});

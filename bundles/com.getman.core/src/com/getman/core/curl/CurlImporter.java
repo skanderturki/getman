@@ -373,7 +373,11 @@ public final class CurlImporter {
 				bodyType = BodyType.TEXT;
 			}
 			request.setBodyType(bodyType);
-			request.setBody(data);
+			if (bodyType == BodyType.FORM) {
+				request.setUrlEncodedFieldsFromText(data);
+			} else {
+				request.setBody(data);
+			}
 			// The body type sends its own Content-Type; keep the header only when it says something more.
 			if (ct != null && ct.getValue().trim().equalsIgnoreCase(bodyType.contentType())) {
 				request.getHeaders().remove(ct);

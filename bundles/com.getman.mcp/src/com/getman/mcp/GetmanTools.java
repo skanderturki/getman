@@ -81,7 +81,7 @@ public final class GetmanTools {
 			"params":%s,
 			"headers":%s,
 			"bodyType":{"type":"string","enum":["NONE","JSON","TEXT","XML","FORM"],
-			  "description":"Body type; sets the Content-Type. FORM means application/x-www-form-urlencoded"},
+			  "description":"Body type; sets the Content-Type. FORM means application/x-www-form-urlencoded: write the body as key=value pairs joined with &, URL-encoded"},
 			"body":{"type":"string","description":"Request body text"},
 			"auth":{"type":"object","description":"Authorization. Put secrets in {{variables}}, never literal values",
 			  "properties":{"type":{"type":"string","enum":["NONE","BEARER","BASIC"]},
@@ -322,7 +322,7 @@ public final class GetmanTools {
 			case BINARY -> m.put("binaryFile", r.getBinaryFile());
 			case NONE -> {
 			}
-			default -> m.put("body", redactor.redact(r.getBody()));
+			default -> m.put("body", redactor.redact(r.bodyText()));
 			}
 			Auth auth = r.getAuth();
 			if (auth.getType() != AuthType.NONE) {
@@ -530,6 +530,10 @@ public final class GetmanTools {
 		}
 		if (r.getBodyType() == BodyType.MULTIPART || r.getBodyType() == BodyType.BINARY) {
 			r.setBodyType(BodyType.NONE); // file bodies are not available to the assistant
+		}
+		if (r.getBodyType() == BodyType.FORM && (body != null || r.getUrlEncodedFields().isEmpty())) {
+			// The assistant writes form bodies as text (a=1&b=2); GetMan keeps them as fields.
+			r.setUrlEncodedFieldsFromText(body != null ? body : r.getBody());
 		}
 		if (auth != null) {
 			Auth a = r.getAuth();
@@ -841,7 +845,7 @@ public final class GetmanTools {
 		});
 		Redactor redactor = p.redactor();
 		if (needsApproval(p.environment(), p.resolved().getMethod())) {
-			String body = p.resolved().hasBody() && p.resolved().getBodyType().isText() ? p.resolved().getBody() : "";
+			String body = p.resolved().hasBody() && p.resolved().getBodyType().isText() ? p.resolved().bodyText() : "";
 			if (body.length() > 500) {
 				body = body.substring(0, 500) + "…";
 			}

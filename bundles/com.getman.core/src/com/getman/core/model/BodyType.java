@@ -6,6 +6,7 @@ public enum BodyType {
 	JSON("JSON", "application/json"),
 	TEXT("Text", "text/plain"),
 	XML("XML", "application/xml"),
+	/** Fields from {@link RequestModel#getUrlEncodedFields()}, encoded when sent. */
 	FORM("Form URL-encoded", "application/x-www-form-urlencoded"),
 	/** Text fields and files, from {@link RequestModel#getFormFields()}; the boundary is added when sending. */
 	MULTIPART("Form Data (multipart)", "multipart/form-data"),
@@ -29,7 +30,7 @@ public enum BodyType {
 		return contentType;
 	}
 
-	/** Whether the body is the text in {@link RequestModel#getBody()}. */
+	/** Whether the body is text, as {@link RequestModel#bodyText()} returns it. */
 	public boolean isText() {
 		return this == JSON || this == TEXT || this == XML || this == FORM;
 	}

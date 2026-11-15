@@ -109,6 +109,29 @@ class StateStoreTest {
 	}
 
 	@Test
+	void formBodiesKeepFieldsAndStayReadableByOlderVersions() {
+		WorkspaceState state = new WorkspaceState();
+		RequestModel r = new RequestModel();
+		r.setBodyType(BodyType.FORM);
+		r.getUrlEncodedFields().add(new KeyValue("password", "a&b"));
+		r.getUrlEncodedFields().add(new KeyValue("off", "1", false));
+		state.getOpenTabs().add(r);
+		String json = StateCodec.toJson(state);
+		assertTrue(json.contains("\"body\": \"password=a%26b\""), json);
+		assertEquals(r.getUrlEncodedFields(), StateCodec.fromJson(json).getOpenTabs().get(0).getUrlEncodedFields());
+	}
+
+	@Test
+	void formBodiesSavedAsTextBecomeFields() {
+		RequestModel r = StateCodec.fromJson(
+				"{\"openTabs\":[{\"bodyType\":\"FORM\",\"body\":\"user=ada+lovelace&pass=p%26ss\"}]}")
+				.getOpenTabs().get(0);
+		assertEquals(java.util.List.of(new KeyValue("user", "ada lovelace"), new KeyValue("pass", "p&ss")),
+				r.getUrlEncodedFields());
+		assertEquals("", r.getBody());
+	}
+
+	@Test
 	void roundTripsProductionFlagAndAssistantMarker() throws IOException {
 		WorkspaceState state = new WorkspaceState();
 		Environment prod = new Environment("Production");

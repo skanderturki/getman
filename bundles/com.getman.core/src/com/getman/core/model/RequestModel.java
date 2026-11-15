@@ -16,6 +16,7 @@ public final class RequestModel implements CollectionNode {
 	private String body = "";
 	private final Auth auth = new Auth();
 	private final List<FormField> formFields = new ArrayList<>();
+	private final List<KeyValue> urlEncodedFields = new ArrayList<>();
 	private String binaryFile = "";
 	/** Id of the collection this request was opened from or saved to; empty when it is in none. */
 	private String collectionId = "";
@@ -130,6 +131,32 @@ public final class RequestModel implements CollectionNode {
 		return formFields;
 	}
 
+	/**
+	 * Live, mutable list of decoded form fields (used when the body type is {@link BodyType#FORM}); they are
+	 * URL-encoded when sent.
+	 */
+	public List<KeyValue> getUrlEncodedFields() {
+		return urlEncodedFields;
+	}
+
+	/**
+	 * The text of a text body as it is sent: the URL-encoded fields for {@link BodyType#FORM}, otherwise
+	 * {@link #getBody()}.
+	 */
+	public String bodyText() {
+		return bodyType == BodyType.FORM ? FormUrlEncoded.encode(urlEncodedFields) : body;
+	}
+
+	/**
+	 * Replaces the URL-encoded fields with those written in {@code text} (as {@code a=1&b=2}) and clears the text
+	 * body. Used for form bodies that arrive as text: older saved files, cURL, the MCP server.
+	 */
+	public void setUrlEncodedFieldsFromText(String text) {
+		urlEncodedFields.clear();
+		urlEncodedFields.addAll(FormUrlEncoded.parse(text));
+		body = "";
+	}
+
 	/** Path of the file sent as the body when the body type is {@link BodyType#BINARY}. */
 	public String getBinaryFile() {
 		return binaryFile;
@@ -145,6 +172,7 @@ public final class RequestModel implements CollectionNode {
 		case NONE -> false;
 		case MULTIPART -> formFields.stream().anyMatch(FormField::isActive);
 		case BINARY -> !binaryFile.isBlank();
+		case FORM -> urlEncodedFields.stream().anyMatch(KeyValue::isActive);
 		default -> !body.isEmpty();
 		};
 	}
@@ -169,6 +197,7 @@ public final class RequestModel implements CollectionNode {
 		return other != null && name.equals(other.name) && method == other.method && url.equals(other.url)
 				&& params.equals(other.params) && headers.equals(other.headers) && bodyType == other.bodyType
 				&& body.equals(other.body) && auth.equals(other.auth) && formFields.equals(other.formFields)
+				&& urlEncodedFields.equals(other.urlEncodedFields)
 				&& binaryFile.equals(other.binaryFile) && expectedStatus.equals(other.expectedStatus);
 	}
 
@@ -187,6 +216,7 @@ public final class RequestModel implements CollectionNode {
 		copy.auth.setUsername(auth.getUsername());
 		copy.auth.setPassword(auth.getPassword());
 		formFields.forEach(f -> copy.formFields.add(f.copy()));
+		urlEncodedFields.forEach(f -> copy.urlEncodedFields.add(f.copy()));
 		copy.binaryFile = binaryFile;
 		copy.expectedStatus = expectedStatus;
 		return copy;

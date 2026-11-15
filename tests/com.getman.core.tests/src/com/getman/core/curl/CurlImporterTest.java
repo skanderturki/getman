@@ -54,7 +54,8 @@ class CurlImporterTest {
 		RequestModel r = parse("curl -d name=Ada -d age=36 https://x.test/p");
 		assertEquals(HttpMethod.POST, r.getMethod());
 		assertEquals(BodyType.FORM, r.getBodyType());
-		assertEquals("name=Ada&age=36", r.getBody());
+		assertEquals("name=Ada&age=36", r.bodyText());
+		assertEquals("Ada", r.getUrlEncodedFields().get(0).getValue());
 	}
 
 	@Test

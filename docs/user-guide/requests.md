@@ -43,11 +43,21 @@ Choose a body type in the **Body** section:
 | JSON | The text you type; **Format JSON** pretty-prints it and reports syntax errors with line and column | `application/json` |
 | Text | The text you type | `text/plain` |
 | XML | The text you type | `application/xml` |
-| Form URL-encoded | The text you type, e.g. `name=Ada&age=36` | `application/x-www-form-urlencoded` |
+| Form URL-encoded | The fields in the table, encoded like an HTML form, e.g. `name=Ada&age=36` | `application/x-www-form-urlencoded` |
 | Form Data (multipart) | Text fields and file uploads (see below) | `multipart/form-data; boundary=…` |
 | Binary File | The content of one file, unchanged | `application/octet-stream` |
 
 Text bodies are sent as UTF-8.
+
+### URL-encoded forms
+
+With **Form URL-encoded** the body editor becomes a table of fields, like the Params table. Type keys and values
+as they are, without encoding them: GetMan encodes them when it sends, the way a browser submits an HTML form
+(`p&ss word` is sent as `p%26ss+word`). Variables are replaced first, so a `{{password}}` value that contains `&` or
+`=` is encoded too. Untick a row to keep it without sending it.
+
+If you typed a body as text such as `a=1&b=2` under another body type, choosing **Form URL-encoded** turns it into
+rows. Requests saved by earlier versions of GetMan open with their form text turned into rows.
 
 ### Form data and file uploads
 

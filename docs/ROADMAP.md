@@ -1,7 +1,7 @@
 # GetMan roadmap
 
-Status: 0.4.0 to 0.9.3 are released (the user guide was added in 0.7.0, the MCP server for AI coding assistants
-in 0.9.0, run results in History and export in 0.9.1, setup guides for Copilot and Codex in 0.9.2, copy buttons for their settings in 0.9.3). GetMan is available on the
+Status: 0.4.0 to 0.9.4 are released (the user guide was added in 0.7.0, the MCP server for AI coding assistants
+in 0.9.0, run results in History and export in 0.9.1, setup guides for Copilot and Codex in 0.9.2, copy buttons for their settings in 0.9.3, a key/value table for URL-encoded form bodies in 0.9.4). GetMan is available on the
 [Eclipse Marketplace](https://marketplace.eclipse.org/content/getman).
 
 Planned work after 0.3.0, in release order. Each release is shippable on its own: merged to `main`, tagged,
@@ -18,6 +18,7 @@ published to the update site, and announced in the GitHub release notes.
 | **0.9.1** | Run results kept in History, export to HTML, CSV and JUnit XML | Test suites are only useful if their results can be found, compared and shared |
 | **0.9.2** | Setup guides for GitHub Copilot (Eclipse, VS Code) and Codex | Users of assistants other than Claude Code had no step-by-step setup |
 | **0.9.3** | Copy buttons for the Copilot (Eclipse), VS Code and Codex settings | One click instead of typing the URL and token by hand |
+| **0.9.4** | Key/value table for URL-encoded form bodies | Form values had to be percent-encoded by hand, so a password with `&` or `=` silently broke a login |
 | Later | Response search, save response to file, image preview, cookie jar, scripts and tests | |
 
 Validate the order against demand: open one GitHub issue per release theme and invite 👍 votes.
@@ -277,3 +278,13 @@ GetMan**, and every request it creates stays in GetMan, to review, edit, re-run 
   **Copy Codex Config** copy the server entry with your port and token filled in, ready to paste in the
   assistant's MCP configuration.
 - The user guide's setup sections start from these buttons.
+
+## 0.9.4: Key/value table for URL-encoded forms
+
+**Goal:** testing an HTML form (such as a Spring Security login) works without encoding values by hand.
+
+- **Form URL-encoded** bodies are edited in a key/value table, like Params. Values are typed as they are and
+  encoded when sent, the way a browser submits a form; rows can be switched off.
+- Variables are filled in before encoding, so a `{{password}}` containing `&` or `=` is sent correctly.
+- Form text from older saved files, cURL import and the MCP server becomes rows; saved files still carry the
+  encoded text, so older versions of GetMan read them. Postman import keeps disabled fields.

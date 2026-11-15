@@ -1,7 +1,5 @@
 package com.getman.core.postman;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -44,8 +42,6 @@ public final class PostmanImporter {
 
 	public record EnvironmentResult(Environment environment, List<String> warnings) {
 	}
-
-	private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{[^{}]*\\}\\}");
 
 	private PostmanImporter() {
 	}
@@ -318,15 +314,14 @@ public final class PostmanImporter {
 		}
 
 		private static void urlencodedBody(Object fields, RequestModel r) {
-			List<String> pairs = new ArrayList<>();
 			for (Object o : list(fields)) {
-				if (o instanceof Map<?, ?> f && !(f.get("disabled") instanceof Boolean b && b)) {
-					pairs.add(encodeKeepingVariables(str(f.get("key"))) + "=" + encodeKeepingVariables(str(f.get("value"))));
+				if (o instanceof Map<?, ?> f && !str(f.get("key")).isBlank()) {
+					r.getUrlEncodedFields().add(new KeyValue(str(f.get("key")), str(f.get("value")),
+							!(f.get("disabled") instanceof Boolean b && b)));
 				}
 			}
-			if (!pairs.isEmpty()) {
+			if (!r.getUrlEncodedFields().isEmpty()) {
 				r.setBodyType(BodyType.FORM);
-				r.setBody(String.join("&", pairs));
 			}
 		}
 
@@ -437,7 +432,7 @@ public final class PostmanImporter {
 			if (dynamicVariables) {
 				return;
 			}
-			StringBuilder all = new StringBuilder(r.getUrl()).append(r.getBody());
+			StringBuilder all = new StringBuilder(r.getUrl()).append(r.bodyText());
 			r.getHeaders().forEach(h -> all.append(h.getValue()));
 			r.getParams().forEach(p -> all.append(p.getValue()));
 			dynamicVariables = all.indexOf("{{$") >= 0;
@@ -479,20 +474,6 @@ public final class PostmanImporter {
 						+ "and are left as written.");
 			}
 		}
-	}
-
-	/** URL-encodes text but leaves {{variables}} intact, so they still resolve later. */
-	static String encodeKeepingVariables(String s) {
-		StringBuilder out = new StringBuilder();
-		Matcher m = PLACEHOLDER.matcher(s);
-		int last = 0;
-		while (m.find()) {
-			out.append(URLEncoder.encode(s.substring(last, m.start()), StandardCharsets.UTF_8));
-			out.append(m.group());
-			last = m.end();
-		}
-		out.append(URLEncoder.encode(s.substring(last), StandardCharsets.UTF_8));
-		return out.toString();
 	}
 
 	private static String str(Object o) {

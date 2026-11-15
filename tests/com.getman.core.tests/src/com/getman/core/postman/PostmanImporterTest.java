@@ -149,7 +149,10 @@ class PostmanImporterTest {
 		RequestCollection c = PostmanImporter.importCollection(V21).collection();
 		RequestModel login = find(c, "Login");
 		assertEquals(BodyType.FORM, login.getBodyType());
-		assertEquals("user=ada+lovelace&pass={{password}}", login.getBody());
+		assertEquals(List.of(new KeyValue("user", "ada lovelace"), new KeyValue("pass", "{{password}}"),
+				new KeyValue("skip", "1", false)),
+				login.getUrlEncodedFields());
+		assertEquals("user=ada+lovelace&pass={{password}}", login.bodyText());
 
 		RequestModel upload = find(c, "Upload");
 		assertEquals(BodyType.MULTIPART, upload.getBodyType());
@@ -239,10 +242,5 @@ class PostmanImporterTest {
 				() -> PostmanImporter.importCollection("{\"requests\":[],\"order\":[],\"name\":\"v1\"}"));
 		assertThrows(PostmanImportException.class, () -> PostmanImporter.importCollection("{\"a\":1}"));
 		assertThrows(PostmanImportException.class, () -> PostmanImporter.importEnvironment("[]"));
-	}
-
-	@Test
-	void encodingKeepsVariables() {
-		assertEquals("a+b%26{{x y}}c", PostmanImporter.encodeKeepingVariables("a b&{{x y}}c"));
 	}
 }

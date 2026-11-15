@@ -51,7 +51,7 @@ final class BodyEncoder {
 		if (r.getBodyType() == BodyType.BINARY) {
 			return new Encoded(ofFile(existingFile(r.getBinaryFile(), "The binary body file")), null);
 		}
-		return new Encoded(BodyPublishers.ofString(r.getBody(), StandardCharsets.UTF_8), null);
+		return new Encoded(BodyPublishers.ofString(r.bodyText(), StandardCharsets.UTF_8), null);
 	}
 
 	static String newBoundary() {

@@ -215,7 +215,11 @@ public final class StateCodec {
 		m.put("params", kvToList(r.getParams(), null, null));
 		m.put("headers", kvToList(r.getHeaders(), null, null));
 		m.put("bodyType", r.getBodyType().name());
-		m.put("body", r.getBody());
+		// For form bodies, "body" also holds the encoded text, so older versions of GetMan still read the request.
+		m.put("body", r.getBodyType() == BodyType.FORM ? r.bodyText() : r.getBody());
+		if (!r.getUrlEncodedFields().isEmpty()) {
+			m.put("urlEncodedFields", kvToList(r.getUrlEncodedFields(), null, null));
+		}
 		if (!r.getFormFields().isEmpty()) {
 			List<Object> fields = new ArrayList<>();
 			for (FormField f : r.getFormFields()) {
@@ -266,6 +270,14 @@ public final class StateCodec {
 		r.getHeaders().addAll(kvFromList(m.get("headers"), null));
 		r.setBodyType(BodyType.parse(string(m.get("bodyType"))));
 		r.setBody(string(m.get("body")));
+		if (m.containsKey("urlEncodedFields")) {
+			r.getUrlEncodedFields().addAll(kvFromList(m.get("urlEncodedFields"), null));
+			if (r.getBodyType() == BodyType.FORM) {
+				r.setBody("");
+			}
+		} else if (r.getBodyType() == BodyType.FORM) {
+			r.setUrlEncodedFieldsFromText(r.getBody()); // saved before form bodies had fields
+		}
 		for (Object o : list(m.get("formFields"))) {
 			if (o instanceof Map<?, ?> fm) {
 				r.getFormFields().add(new FormField(string(fm.get("key")), string(fm.get("value")),
